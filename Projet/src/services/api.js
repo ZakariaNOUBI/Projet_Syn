@@ -26,3 +26,12 @@ export async function getUsers() {
   }
   return response.json();
 }
+
+// Récupérer un utilisateur spécifique par ID
+export async function getUserById(id) {
+  const response = await fetch(`${API_URL}/users/${id}`);
+  if (!response.ok) {
+    throw new Error("Erreur lors de la récupération de l'utilisateur");
+  }
+  return response.json();
+}
