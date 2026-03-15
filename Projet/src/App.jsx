@@ -1,16 +1,23 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { useState } from "react";
+import ProfilePage from "./pages/ProfilePage";
+import UsersListPage from "./pages/UsersListPage";
 
 function App() {
+  const [usersList, setUsersList] = useState([]);
+
+  const addUserToList = (user) => {
+    setUsersList((prev) => [...prev, user]);
+  };
+
   return (
-    <h1 className="text-4xl font-bold text-blue-500">
-      Tailwind marche 🚀
-    </h1>
-  )
+    <Router>
+      <Routes>
+        <Route path="/" element={<UsersListPage />} />
+        <Route path="/profile" element={<ProfilePage onNewUser={addUserToList} />} />
+      </Routes>
+    </Router>
+  );
 }
 
-export default App
-
+export default App;
