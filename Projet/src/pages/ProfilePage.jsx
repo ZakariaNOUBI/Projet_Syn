@@ -2,7 +2,7 @@ import { useState } from "react";
 import { signupUser } from "../services/api";
 import { useNavigate } from "react-router-dom";
 
-function ProfilePage({ onNewUser }) {
+function ProfilePage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -20,34 +20,11 @@ function ProfilePage({ onNewUser }) {
       const payload = {
         firstName,
         lastName: lastName || "Dupont",
-        birthDate: new Date().toISOString(),
+        birthDate: new Date().toISOString().split("T")[0], // format "YYYY-MM-DD"
         isActive: true,
-        phone: "1234567890",
+        phone: "11111111111",
         email,
-        password,
-        addresses: [
-          {
-            streetNumber: "1",
-            streetName: "Rue Test",
-            city: "Montreal",
-            province: "QC",
-            country: "CA",
-            type: "PERSONAL",
-          },
-        ],
-        transactions: [],
-        schoolDetails: {
-          schoolName: "",
-          fieldOfStudy: "",
-          startDate: new Date().toISOString(),
-          projectedEndDate: new Date().toISOString(),
-        },
-        bankingDetails: {
-          institutionName: "",
-          accountInfo: "",
-          loanInfo: "",
-          other: "",
-        },
+        password
       };
 
       const data = await signupUser(payload);
