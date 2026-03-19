@@ -24,7 +24,7 @@ export const addTransaction = async (transactionData, userId = DEFAULT_USER_ID) 
       `${API_URL}/users/${userId}/transactions`,
       transactionData
     );
-    return response.data; // transaction ajoutée
+    return response.data; 
   } catch (error) {
     console.error("Erreur ajout transaction :", error);
     throw error;
@@ -49,13 +49,11 @@ export const updateTransaction = async (
   }
 };
 
-// ===============================
-// Supprimer une transaction
-// ===============================
+
 export const deleteTransaction = async (userId = DEFAULT_USER_ID, transactionId) => {
   try {
     const response = await axios.delete(`${API_URL}/users/${userId}/transactions/${transactionId}`);
-    return response.data; // succès suppression
+    return response.data; 
   } catch (error) {
     console.error("Erreur suppression transaction :", error);
     throw error;

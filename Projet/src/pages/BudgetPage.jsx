@@ -192,7 +192,7 @@ const handleNewMonth = async () => {
 
 
       <h2 className="text-xl font-bold mb-2">Revenus</h2>
-      <table className="w-full bg-white shadow rounded mb-4 min-w-[600px]">
+      <table className="w-full bg-white shadow rounded mb-4 ">
         <thead>
           <tr className="bg-gray-200">
             <th className="p-2 text-left">Description</th>
@@ -267,7 +267,7 @@ const handleNewMonth = async () => {
 
 
       <h2 className="text-xl font-bold mb-2">Dépenses</h2>
-      <table className="w-full bg-white shadow rounded mb-4">
+      <table className="w-full bg-white shadow rounded mb-4 ">
         <thead>
           <tr className="bg-gray-200">
          <th className="p-2 text-left">Description</th>
@@ -337,7 +337,7 @@ const handleNewMonth = async () => {
           <tr>
             <td className="p-2">
               <input
-                className="border rounded px-2"
+                className="border rounded px-2 w-full sm:w-auto"
                 value={newExpense.description}
                 onChange={(e) => setNewExpense({ ...newExpense, description: e.target.value })}
                 placeholder="Description"
@@ -345,7 +345,7 @@ const handleNewMonth = async () => {
             </td>
             <td className="p-2">
               <input
-                className="border rounded px-2"
+                className="border rounded px-2 w-full sm:w-auto"
                 value={newExpense.category}
                 onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}
                 placeholder="Catégorie"
@@ -354,7 +354,7 @@ const handleNewMonth = async () => {
             <td className="p-2">
               <input
                 type="number"
-                className="border rounded px-2"
+                className="border rounded px-2  w-full sm:w-auto"
                 value={newExpense.amount}
                 onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
                 placeholder="Montant"
@@ -362,7 +362,7 @@ const handleNewMonth = async () => {
             </td>
         <td></td>
             <td>
-              <button onClick={handleAddExpense} className="text-green-600 font-bold">
+              <button onClick={handleAddExpense} className="text-green-600 font-bold  w-full sm:w-auto">
                 Ajouter
               </button>
             </td>
