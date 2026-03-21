@@ -102,22 +102,24 @@ const BudgetPage = () => {
 
 const toggleFrequency = async (r, type) => {
   try {
+    const isRecurring = Number(r.frequency) === 1;
+
     const updatedData = {
-      ...r,
-      frequency: r.frequency === 1 ? -1 : 1, 
-      endDate: r.frequency === 1 ? null : r.startDate, 
+      frequency: isRecurring ? -1 : 1,
     };
 
     const updated = await updateTransaction(userId, r.id, updatedData);
 
     if (type === "Revenue") {
-      setRevenues(revenues.map((item) => (item.id === r.id ? updated : item)));
-    } 
+      setRevenues((prev) =>
+        prev.map((item) => (item.id === r.id ? updated : item))
+      );
+    }
 
-    showToast("Récurrent mise à jour ✅");
+    showToast("Récurrence mise à jour ✅");
   } catch (error) {
-    console.error(error);
-    showToast("Erreur mise à jour Récurrent ❌");
+    console.error("ERREUR :", error.response?.data || error);
+    showToast("Erreur mise à jour ❌");
   }
 };
   const openDeleteModal = (id, type) => {
