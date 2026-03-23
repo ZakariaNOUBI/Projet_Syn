@@ -11,103 +11,134 @@ function ProfilePage() {
   const [isError, setIsError] = useState(false);
   const navigate = useNavigate();
 
+  // Validation : 8 caractères, 1 majuscule, 1 minuscule, 1 chiffre
+  const validatePassword = (pass) => {
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    return regex.test(pass);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
     setIsError(false);
 
+    // 1. Vérification du mot de passe avant l'appel API
+    if (!validatePassword(password)) {
+      const errorMsg = "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule et un chiffre.";
+      setMessage(errorMsg);
+      setIsError(true);
+      window.alert("⚠️ " + errorMsg);
+      return;
+    }
+
     try {
-      // Payload minimal requis par ton API
       const payload = {
         firstName,
-        lastName: lastName || "Dupont",
-        birthDate: new Date().toISOString().split("T")[0], // format "YYYY-MM-DD"
+        lastName: lastName || "Non renseigné",
+        birthDate: new Date().toISOString().split("T")[0], 
         isActive: true,
-        phone: "11111111111",
+        phone: "00000000000",
         email,
         password
       };
 
       const data = await signupUser(payload);
 
-      setMessage(`Utilisateur créé avec succès ! ID: ${data.id}`);
-      setIsError(false);
+      // 2. Stockage de l'ID pour la suite
+      if (data && data.id) {
+        localStorage.setItem("userId", data.id);
+        
+        // --- ALERTE DE CONFIRMATION ---
+        window.alert("✅ Utilisateur créé avec succès !");
+        
+        setMessage("Inscription réussie ! Redirection...");
+        setIsError(false);
 
-      // Reset du formulaire
-      setFirstName("");
-      setLastName("");
-      setEmail("");
-      setPassword("");
+        // 3. Reset et Redirection immédiate après le "OK" de l'alerte
+        setFirstName("");
+        setLastName("");
+        setEmail("");
+        setPassword("");
+        
+        navigate("/UpdateProfile");
+      }
 
-      // Optionnel : redirection après 1s
-      setTimeout(() => navigate("/"), 1000);
     } catch (err) {
       console.error(err);
-      setMessage(err.message || "Erreur lors de l'inscription");
+      const errorDetail = err.message || "Erreur lors de l'inscription";
+      setMessage(errorDetail);
       setIsError(true);
+      window.alert("❌ " + errorDetail);
     }
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-gray-100">
-      <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-4 text-center">Inscription</h1>
+    <div className="fixed inset-0 flex items-center justify-center bg-gray-100 p-4">
+      <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md border-t-4 border-purple-600">
+        <h1 className="text-2xl font-bold mb-6 text-center text-gray-800">Inscription</h1>
 
         {message && (
-          <p className={`text-center mb-4 ${isError ? "text-red-500" : "text-green-500"}`}>
+          <div className={`text-sm p-3 rounded mb-4 text-center font-medium ${isError ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"}`}>
             {message}
-          </p>
+          </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label>Prénom</label>
+            <label className="block text-sm font-semibold text-gray-700">Prénom</label>
             <input
               type="text"
+              placeholder="Entrez votre prénom"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               required
-              className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-purple-500"
+              className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-purple-500 outline-none transition"
             />
           </div>
 
           <div>
-            <label>Nom</label>
+            <label className="block text-sm font-semibold text-gray-700">Nom</label>
             <input
               type="text"
+              placeholder="Entrez votre nom"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
-              className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-purple-500"
+              className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-purple-500 outline-none transition"
             />
           </div>
 
           <div>
-            <label>Email</label>
+            <label className="block text-sm font-semibold text-gray-700">Email</label>
             <input
               type="email"
+              placeholder="exemple@mail.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-purple-500"
+              className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-purple-500 outline-none transition"
             />
           </div>
 
           <div>
-            <label>Mot de passe</label>
+            <label className="block text-sm font-semibold text-gray-700">Mot de passe</label>
             <input
               type="password"
+              placeholder="********"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-purple-500"
+              className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-purple-500 outline-none transition"
             />
+            <p className="text-[10px] text-gray-500 mt-1">
+              8 caractères min, 1 majuscule, 1 minuscule, 1 chiffre.
+            </p>
           </div>
 
           <button
             type="submit"
-            className="w-full bg-purple-500 text-white rounded py-2 mt-2 hover:bg-purple-600 transition"
+            className="w-full bg-purple-600 text-white rounded py-2.5 mt-4 hover:bg-purple-700 transition font-bold shadow-md uppercase tracking-wider"
           >
-            S’inscrire
+            S'inscrire
           </button>
         </form>
       </div>

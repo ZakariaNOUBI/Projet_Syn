@@ -13,7 +13,6 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<UsersListPage />} />
         <Route path="/profile" element={<ProfilePage onNewUser={addUserToList} />} />
       </Routes>
     </Router>
