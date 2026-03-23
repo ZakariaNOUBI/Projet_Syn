@@ -167,8 +167,9 @@ const confirmNewMonth = async () => {
   }
 };
   return (
-    <div className="p-6 bg-gray-50 min-h-screen overflow-x-auto">
-      <div className="flex justify-between items-center mb-6">
+  <div className="p-4 md:p-6 bg-gray-50 min-h-screen overflow-x-auto">
+  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+
         <p className="text-lg font-semibold">
           Votre balance ce mois-ci :
           <span className={balance >= 0 ? "text-green-600 ml-2" : "text-red-600 ml-2"}>
@@ -352,7 +353,7 @@ const confirmNewMonth = async () => {
                 className="border rounded px-2  w-full sm:w-auto"
                 value={newExpense.amount}
                 onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
-                placeholder="Montant"
+                placeholder="Coût"
               />
             </td>
         <td></td>

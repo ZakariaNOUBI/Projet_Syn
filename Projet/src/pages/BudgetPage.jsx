@@ -257,8 +257,8 @@ const BudgetPage = () => {
                 <th className="p-2 text-left">Description</th>
                 <th className="p-2 text-left">Catégorie</th>
                 <th className="p-2 text-left">Coût</th>
-                <th className="p-2 text-left">Récurrence</th>
-                <th className="p-2 text-left"></th>
+                <th className="p-2 text-left hidden md:table-cell">Récurrence</th>
+                <th className="p-2 text-left hidden md:table-cell"></th>
               </tr>
             </thead>
             <tbody>
@@ -267,7 +267,7 @@ const BudgetPage = () => {
                   <td className="p-2">{e.description}</td>
                   <td className="p-2">{e.category}</td>
                   <td className="p-2">{e.amount} $</td>
-                  <td className="p-2">
+                  <td className="p-2 hidden md:table-cell">
                     <select
                       className={`border rounded px-2 py-1 transition-all
                         ${e.frequency === 1 ? "bg-green-100 border-green-400" : "bg-gray-100 border-gray-300"}`}
@@ -288,7 +288,7 @@ const BudgetPage = () => {
                       <option value="Mensuelle">Mensuelle</option>
                     </select>
                   </td>
-                  <td className="p-2">
+                  <td className="p-2 hidden md:table-cell">
                     <button
                       onClick={() => openDeleteModal(e.id, "Expense")}
                       className="text-red-500 hover:text-red-700 transition-colors"
@@ -327,9 +327,9 @@ const BudgetPage = () => {
                     placeholder="Coût"
                   />
                 </td>
-                <td></td>
+                <td className="hidden md:table-cell"></td>
                 <td>
-                  <button onClick={handleAddExpense} className="text-green-600 font-bold w-full">
+                  <button onClick={handleAddExpense} className="text-green-600 font-bold w-full hidden md:table-cell">
                     Ajouter
                   </button>
                 </td>

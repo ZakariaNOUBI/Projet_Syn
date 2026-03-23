@@ -1,4 +1,9 @@
 @import "tailwindcss";
+.min-w-175 {
+  min-width: 700px;
+}
+
+
 
 
 @keyframes fade-in {
