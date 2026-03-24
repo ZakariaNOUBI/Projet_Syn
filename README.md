@@ -63,9 +63,6 @@ L’application comprend les pages suivantes :
 
 ## Installation
 1. Cloner le dépôt :  
-```bash
-<<<<<<< HEAD
-git clone https://github.com/ZakariaNOUBI/Projet_Syn.gitgi
-=======
+
 git clone https://github.com/ZakariaNOUBI/Projet_Syn.git
->>>>>>> Amira
+
