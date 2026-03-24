@@ -1,7 +1,7 @@
 # Projet_Syn
 
 # Gestion de Budget
-=======
+
 # Gestion de Budget Étudiant
 
 ## Description du projet
