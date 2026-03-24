@@ -1,7 +1,7 @@
-<<<<<<< HEAD
+
 const API_URL = "https://money-pie-2.fly.dev/api/v1";
 
-// Créer un nouvel utilisateur
+
 export async function signupUser(payload) {
   const response = await fetch(`${API_URL}/users`, {
     method: "POST",
@@ -19,7 +19,7 @@ export async function signupUser(payload) {
   return response.json();
 }
 
-// Récupérer tous les utilisateurs
+
 export async function getUsers() {
   const response = await fetch(`${API_URL}/users`);
   if (!response.ok) {
@@ -27,11 +27,11 @@ export async function getUsers() {
   }
   return response.json();
 }
-=======
+
 import axios from "axios";
 
 
-const API_URL = "https://money-pie-2.fly.dev/api/v1";
+
 const DEFAULT_USER_ID = 20;
 
 
@@ -89,4 +89,4 @@ export const deleteTransaction = async (userId = DEFAULT_USER_ID, transactionId)
     throw error;
   }
 };
->>>>>>> Amira
+

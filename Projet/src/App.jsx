@@ -29,7 +29,7 @@ function App() {
               <Route path="/" element={<UsersListPage />} />
               <Route path="/profile" element={<ProfilePage onNewUser={addUserToList} />} />
               <Route path="/budget" element={<BudgetPage />} />
-              <Route path="/update-profile" element={<UpdateProfile />} /> {/* nouvelle route */}
+              <Route path="/update-profile" element={<UpdateProfile />} /> 
               <Route path="/about" element={<h1>À propos</h1>} />
               <Route path="/home" element={<h1>Accueil</h1>} />
             </Routes>
