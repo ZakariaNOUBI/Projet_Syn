@@ -1,5 +1,8 @@
 # Projet_Syn
-# Gestion de Budget 
+
+# Gestion de Budget
+
+
 
 ## Description du projet
 Dans le cadre de ce projet, vous serez amenés à concevoir et développer une application web de **gestion de budget** orientée vers les étudiants.  
@@ -47,7 +50,8 @@ L’application comprend les pages suivantes :
 | **Zakaria**| Développement Page 3          |
 | **Hannela**| Développement Page 4          |
 
->Chaque membre travaille sur sa propre page dans une branche à son nom avant de fusionner dans main. Les pull requests seront utilisées pour valider et intégrer les changements.
+> Chaque membre travaille sur sa page dédiée avant de fusionner dans `main` ou `Amira`.
+
 ---
 
 ## Déroulement du projet
@@ -59,5 +63,6 @@ L’application comprend les pages suivantes :
 
 ## Installation
 1. Cloner le dépôt :  
-```bash
+
 git clone https://github.com/ZakariaNOUBI/Projet_Syn.git
+

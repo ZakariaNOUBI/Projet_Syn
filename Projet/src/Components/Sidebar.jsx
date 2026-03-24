@@ -1,19 +1,31 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
-import HomeIcon from "../assets/icons/home.png";
-import BudgetIcon from "../assets/icons/budget.png";
+
+
+
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import HomeIcon from "../assets/icons/home (3).png";
+import BudgetIcon from "../assets/icons/dollar-symbol (1).png";
 import ProfileIcon from "../assets/icons/profile.png";
-import LogoutIcon from "../assets/icons/logout1.png";
+import LogoutIcon from "../assets/icons/logout2.png";
 
 const Sidebar = () => {
-  const location = useLocation();
-
+ 
+const location = useLocation();
+  const navigate = useNavigate();
   const navItems = [
     { icon: HomeIcon, path: "/", label: "Accueil" , size: "h-6 w-6"  },
-    { icon: BudgetIcon, path: "/budget", label: "Budget" , size: "h-6 w-6" },
+    { icon: BudgetIcon, path: "/budget", label: "Budget" ,  },
     { icon: ProfileIcon, path: "/profile", label: "Profil", size: "h-6 w-6"  },
+   
   ];
+  const handleLogout = () => {
+ 
+    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
 
+
+    navigate("/");
+  };
   return (
     <div className="flex flex-col w-20 h-screen p-4 bg-gradient-to-b from-purple-600 via-purple-700 to-purple-800 text-white shadow-lg">
   
@@ -39,7 +51,7 @@ const Sidebar = () => {
         ))}
       </div>
 
-      {/* Déconnexion en bas */}
+
       <div className="flex flex-col items-center mt-4">
         <Link
           to="/"
