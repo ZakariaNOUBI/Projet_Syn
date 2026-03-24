@@ -1,9 +1,8 @@
 # Projet_Syn
-<<<<<<< HEAD
+
 # Gestion de Budget
-=======
-# Gestion de Budget Étudiant
->>>>>>> Amira
+
+
 
 ## Description du projet
 Dans le cadre de ce projet, vous serez amenés à concevoir et développer une application web de **gestion de budget** orientée vers les étudiants.  
