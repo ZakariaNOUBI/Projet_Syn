@@ -1,16 +1,13 @@
-
+import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { useState } from "react";
-import ProfilePage from "./pages/ProfilePage";
-import UsersListPage from "./pages/UsersListPage";
 
-import React from "react";
 import Sidebar from "./Components/Sidebar.jsx";
 import Header from "./Components/Header.jsx";
-import { Routes, Route } from "react-router-dom";
+
+import ProfilePage from "./pages/ProfilePage.jsx";
+import UsersListPage from "./pages/UsersListPage.jsx";
 import BudgetPage from "./pages/BudgetPage.jsx";
-
-
+import UpdateProfile from "./pages/UpdateProfile.jsx"; // <-- nouveau composant
 
 function App() {
   const [usersList, setUsersList] = useState([]);
@@ -20,33 +17,26 @@ function App() {
   };
 
   return (
-
     <Router>
-      <Routes>
-        <Route path="/" element={<UsersListPage />} />
-        <Route path="/profile" element={<ProfilePage onNewUser={addUserToList} />} />
-      </Routes>
+      <div className="flex h-screen">
+        <Sidebar />
+
+        <main className="flex-1 flex flex-col overflow-auto bg-gray-50">
+          <Header />
+
+          <div className="p-6 flex-1 overflow-auto">
+            <Routes>
+              <Route path="/" element={<UsersListPage />} />
+              <Route path="/profile" element={<ProfilePage onNewUser={addUserToList} />} />
+              <Route path="/budget" element={<BudgetPage />} />
+              <Route path="/update-profile" element={<UpdateProfile />} /> {/* nouvelle route */}
+              <Route path="/about" element={<h1>À propos</h1>} />
+              <Route path="/home" element={<h1>Accueil</h1>} />
+            </Routes>
+          </div>
+        </main>
+      </div>
     </Router>
-
-    <div className="flex h-screen">
-      <Sidebar />
-
-      <main className="flex-1 flex flex-col overflow-auto bg-gray-50">
-        <Header /> 
-
-
- 
-        <div className="p-6 flex-1 overflow-auto">
-          <Routes>
-            <Route path="/" element={<h1>Accueil</h1>} />
-            <Route path="/about" element={<h1>À propos</h1>} />
-            <Route path="/budget" element={<BudgetPage />} />
-
-          </Routes>
-        </div>
-      </main>
-    </div>
-
   );
 }
 
