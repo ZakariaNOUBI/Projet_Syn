@@ -2,6 +2,33 @@
 const API_URL = "https://money-pie-2.fly.dev/api/v1";
 
 
+export async function loginUser(credentials) {
+  const response = await fetch(`${API_URL}/auth`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(credentials),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || "Erreur connexion");
+  }
+
+  return response.json();
+}
+export async function getUserById(userId) {
+  const response = await fetch(
+    `https://money-pie-2.fly.dev/api/v1/users/${userId}`
+  );
+
+  if (!response.ok) {
+    throw new Error("Utilisateur introuvable");
+  }
+
+  return response.json();
+}
 export async function signupUser(payload) {
   const response = await fetch(`${API_URL}/users`, {
     method: "POST",

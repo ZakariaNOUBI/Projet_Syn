@@ -7,6 +7,7 @@ import Header from "./Components/Header.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import UsersListPage from "./pages/UsersListPage.jsx";
 import BudgetPage from "./pages/BudgetPage.jsx";
+import LoginPage from "./pages/LoginPage";
  // import UpdateProfile from "./pages/UpdateProfile.jsx";
 
 import { UserProvider } from "./context/UserContext.jsx";
@@ -20,8 +21,9 @@ function App() {
           <Header />
           <div className="p-6 flex-1 overflow-auto">
             <Routes>
+              <Route path="/connexion" element={<LoginPage />} />
               <Route path="/" element={<UsersListPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/inscription" element={<ProfilePage />} />
               <Route path="/budget" element={<BudgetPage />} />
                      {/* <Route path="/update-profile" element={<UpdateProfile />} /> */}
               <Route path="/about" element={<h1>À propos</h1>} />
