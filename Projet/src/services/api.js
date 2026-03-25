@@ -1,4 +1,8 @@
+import axios from "axios";
 
+
+
+const DEFAULT_USER_ID = 20;
 const API_URL = "https://money-pie-2.fly.dev/api/v1";
 
 
@@ -55,11 +59,7 @@ export async function getUsers() {
   return response.json();
 }
 
-import axios from "axios";
 
-
-
-const DEFAULT_USER_ID = 20;
 
 
 export const getTransactions = async (userId = DEFAULT_USER_ID) => {
