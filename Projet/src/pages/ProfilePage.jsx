@@ -35,14 +35,21 @@ function ProfilePage() {
       return;
     }
 
-    if (email.length < 3 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setMessage("Veuillez entrer un email valide d'au moins 3 caractères.");
-      setIsError(true);
-      setShowModal(true);
-      return;
-    }
+ if (!email) {
+  setMessage("Veuillez entrer votre email.");
+  setIsError(true);
+  setShowModal(true);
+  return;
+}
 
-    // Validation mot de passe
+if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  setMessage("Format email invalide.");
+  setIsError(true);
+  setShowModal(true);
+  return;
+}
+
+   
     if (strength < 4) {
       setMessage(
         "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule et un chiffre."
@@ -110,7 +117,7 @@ function ProfilePage() {
           Commencez à budgetter en quelques secondes!
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
       
           <div>
             <label className="block mb-1 font-medium">Votre prénom :</label>
@@ -125,13 +132,15 @@ function ProfilePage() {
     
           <div>
             <label className="block mb-1 font-medium">Votre courriel :</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
-            />
+        <input
+  type="email"
+  value={email}
+  onChange={(e) => setEmail(e.target.value)}
+  required
+  className="w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+/>
           </div>
+
 
      
           <div>
@@ -174,12 +183,12 @@ function ProfilePage() {
             />
           </div>
 
-          <button
-            type="submit"
-            className="w-full py-2 mt-4 rounded-lg bg-gradient-to-r from-purple-600 via-purple-700 to-purple-800 text-white font-semibold shadow-lg hover:brightness-110 transition duration-300"
-          >
-            S’inscrire
-          </button>
+        <button
+    type="submit"
+    className="w-full py-2 mt-4 rounded-lg bg-gradient-to-r from-purple-600 via-purple-700 to-purple-800 text-white font-semibold shadow-lg hover:brightness-110 transition duration-300"
+  >
+    S’inscrire
+  </button>
         </form>
 
 
