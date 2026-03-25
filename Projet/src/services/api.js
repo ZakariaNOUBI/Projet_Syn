@@ -117,3 +117,11 @@ export const deleteTransaction = async (userId = DEFAULT_USER_ID, transactionId)
   }
 };
 
+
+
+/**
+ * Met à jour le profil d’un utilisateur (UpdateProfile)
+
+ */
+
+
