@@ -1,3 +1,11 @@
+function FieldLabel({ text, required = false }) {
+  return (
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      {text} {required && <span className="text-red-500">*</span>}
+    </label>
+  );
+}
+
 function UpdateProfile() {
   return (
     <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
@@ -55,8 +63,36 @@ function UpdateProfile() {
             <p className="bg-gray-200 rounded px-3 py-2 text-sm text-gray-600 italic">Non renseigné</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Province</label>
+            <FieldLabel text="Province" required />
             <p className="bg-gray-200 rounded px-3 py-2 text-sm text-gray-600 italic">Non renseigné</p>
+          </div>
+          <div>
+            <FieldLabel text="Pays" />
+            <span className="inline-block bg-gray-200 text-purple-800 text-sm font-bold px-3 py-2 rounded">CA</span>
+          </div>
+        </div>
+        <hr className="mb-6"></hr>
+        <p className="text-sm font-semibold text-purple-700 mb-3">Adresse au travail</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Numéro civique</label>
+            <p className="bg-gray-200 rounded px-3 py-2 text-sm text-gray-600 italic">Non renseigné</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Rue</label>
+            <p className="bg-gray-200 rounded px-3 py-2 text-sm text-gray-600 italic">Non renseigné</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Ville</label>
+            <p className="bg-gray-200 rounded px-3 py-2 text-sm text-gray-600 italic">Non renseigné</p>
+          </div>
+          <div>
+            <FieldLabel text="Province" required />
+            <p className="bg-gray-200 rounded px-3 py-2 text-sm text-gray-600 italic">Non renseigné</p>
+          </div>
+          <div>
+            <FieldLabel text="Pays" />
+            <span className="inline-block bg-gray-200 text-purple-800 text-sm font-bold px-3 py-2 rounded">CA</span>
           </div>
         </div>
       </div>
