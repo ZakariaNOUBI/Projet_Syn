@@ -1,103 +1,197 @@
-import React, { useState, useEffect } from "react";
-import { getTransactions, addTransaction, deleteTransaction, updateTransaction } from "../services/api";
+import React, { useState, useEffect, useContext } from "react";
+import {
+  getTransactions,
+  addTransaction,
+  deleteTransaction,
+  updateTransaction,
+} from "../services/api";
+import { UserContext } from "../context/UserContext";
 
 const BudgetPage = () => {
-  const userId = 30;
+  const { user } = useContext(UserContext);
+  const userId = user?.id;
+  const [transactionToDelete, setTransactionToDelete] = useState(null);
 
   const [revenues, setRevenues] = useState([]);
   const [expenses, setExpenses] = useState([]);
-  const [showModal, setShowModal] = useState(false);
-  const [transactionToDelete, setTransactionToDelete] = useState(null);
 
-  const [newRevenue, setNewRevenue] = useState({ description: "", category: "", amount: "", isRecurring: false });
-  const [newExpense, setNewExpense] = useState({ description: "", category: "", amount: "", isRecurring: false });
+  const [newRevenue, setNewRevenue] = useState({
+    description: "",
+    category: "",
+    amount: "",
+    isRecurring: false,
+  });
+
+  const [newExpense, setNewExpense] = useState({
+    description: "",
+    category: "",
+    amount: "",
+    isRecurring: false,
+  });
+  const [showModal, setShowModal] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [errorsRevenue, setErrorsRevenue] = useState({});
+  const [errorsExpense, setErrorsExpense] = useState({});
 
   const [toast, setToast] = useState("");
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  const showToast = (message) => {
-    setToast(message);
+  const showToast = (msg) => {
+    setToast(msg);
     setTimeout(() => setToast(""), 2000);
   };
 
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        const transactions = await getTransactions(userId);
-        setRevenues(transactions.filter((t) => t.type === "Revenue"));
-        setExpenses(transactions.filter((t) => t.type === "Expense"));
-      } catch (error) {
-        console.error(error);
-        showToast("Erreur récupération transactions ❌");
+
+  const validate = (data, type = "revenue") => {
+    let errors = {};
+
+    if (!data.description.trim()) {
+      errors.description = "La description est obligatoire";
+    }
+
+    if (!data.amount) {
+      errors.amount = "Le montant est obligatoire";
+    } else if (isNaN(data.amount)) {
+      errors.amount = "Le montant doit être un nombre";
+    } else if (Number(data.amount) < 0) {
+      errors.amount = "Le montant doit être positif";
+    }
+
+    if (type === "expense") {
+      if (!data.category || data.category.trim().length < 3) {
+        errors.category = "Minimum 3 caractères";
       }
-    };
-    fetchTransactions();
-  }, [userId]);
+    }
 
-  const totalRevenue = revenues.reduce((sum, r) => sum + Number(r.amount), 0);
-  const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
-  const balance = totalRevenue - totalExpenses;
+    return errors;
+  };
+const formatAmount = (value) => {
+  return Number(value).toLocaleString("fr-CA", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
 
-  const getDefaultDates = (isRecurring = false) => {
+const getDefaultDates = (isRecurring = false) => {
     const startDate = new Date();
     const format = (d) => d.toISOString().split("T")[0];
     return { startDate: format(startDate), endDate: isRecurring ? format(startDate) : null };
   };
+  useEffect(() => {
+    if (!userId) return;
 
-  const handleAddRevenue = async () => {
-    if (!newRevenue.description || !newRevenue.amount) return;
-
-    const { startDate, endDate } = getDefaultDates(newRevenue.isRecurring);
-
-    const transaction = {
-      description: newRevenue.description,
-      category: newRevenue.category || "Autre",
-      amount: Number(newRevenue.amount),
-      type: "Revenue",
-      userId,
-      startDate,
-      endDate,
-      frequency: newRevenue.isRecurring ? 1 : -1,
+    const fetchData = async () => {
+      const transactions = await getTransactions(userId);
+      setRevenues(transactions.filter((t) => t.type === "Revenue"));
+      setExpenses(transactions.filter((t) => t.type === "Expense"));
     };
 
-    try {
-      const added = await addTransaction(transaction, userId);
-      setRevenues([...revenues, added]);
-      setNewRevenue({ description: "", category: "", amount: "", isRecurring: false });
-      showToast("Revenu ajouté ✅");
-    } catch (error) {
-      console.error(error);
-      showToast("Erreur ajout revenu ❌");
-    }
+    fetchData();
+  }, [userId]);
+  const totalRevenue = revenues.reduce((sum, r) => sum + Number(r.amount), 0);
+  const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+  const balance = totalRevenue - totalExpenses;
+
+const handleAddRevenue = async () => {
+  if (!userId) {
+    showToast("Utilisateur non défini ❌");
+    return;
+  }
+
+
+  const errors = validate(newRevenue, "revenue");
+  if (Object.keys(errors).length > 0) {
+    setErrorsRevenue(errors);
+    return;
+  }
+  setErrorsRevenue({});
+
+
+  const { startDate, endDate } = getDefaultDates(newRevenue.isRecurring);
+
+
+  const transaction = {
+    ...newRevenue,
+    amount: Number(newRevenue.amount),
+    type: "Revenue",
+    userId,
+    startDate,
+    endDate,
+    frequency: newRevenue.frequency || 1, 
   };
 
-  const handleAddExpense = async () => {
-    if (!newExpense.description || !newExpense.amount) return;
+  try {
+    const added = await addTransaction(transaction, userId);
 
-    const { startDate, endDate } = getDefaultDates(newExpense.isRecurring);
-
-    const transaction = {
-      description: newExpense.description,
-      category: newExpense.category || "Autre",
-      amount: Number(newExpense.amount),
-      type: "Expense",
-      userId,
-      startDate,
-      endDate,
-      frequency: newExpense.isRecurring ? 1 : -1,
-    };
-
-    try {
-      const added = await addTransaction(transaction, userId);
-      setExpenses([...expenses, added]);
-      setNewExpense({ description: "", category: "", amount: "", isRecurring: false });
-      showToast("Dépense ajoutée ✅");
-    } catch (error) {
-      console.error(error);
-      showToast("Erreur ajout dépense ❌");
+    if (!added || !added.id) {
+      showToast("Erreur : transaction non ajoutée ❌");
+      return;
     }
+
+  
+    setRevenues(prev => [...prev, added]);
+    setNewRevenue({ description: "", category: "", amount: "", isRecurring: false, frequency: 1 });
+    showToast("Revenu ajouté ✅");
+  } catch (error) {
+    console.error("Erreur ajout revenu :", error);
+    showToast("Erreur ajout revenu ❌");
+  }
+};
+
+const handleAddExpense = async () => {
+  if (!userId) {
+    showToast("Utilisateur non défini ❌");
+    return;
+  }
+
+  // Validation
+  const errors = validate(newExpense, "expense");
+  if (Object.keys(errors).length > 0) {
+    setErrorsExpense(errors);
+    return;
+  }
+  setErrorsExpense({});
+
+  // Définir les dates par défaut selon récurrence
+  const { startDate, endDate } = getDefaultDates(newExpense.isRecurring);
+
+  // Création de la transaction
+  const transaction = {
+    ...newExpense,
+    amount: Number(newExpense.amount),
+    type: "Expense",
+    userId,
+    startDate,
+    endDate,
+    frequency: newExpense.frequency || 1, // par défaut 1 si récurrent
   };
 
+  try {
+    const added = await addTransaction(transaction, userId);
+
+    if (!added || !added.id) {
+      showToast("Erreur : transaction non ajoutée ❌");
+      return;
+    }
+
+ 
+    setExpenses(prev => [...prev, added]);
+    setNewExpense({ description: "", category: "", amount: "", isRecurring: false, frequency: 1 });
+    showToast("Dépense ajoutée ✅");
+  } catch (error) {
+    console.error("Erreur ajout dépense :", error);
+    showToast("Erreur ajout dépense ❌");
+  }
+};
+
+  const inputStyle = (error, value) =>
+    `border rounded px-2 w-full outline-none transition-all
+     ${
+       error
+         ? "border-red-500"
+         : value
+         ? "border-green-500"
+         : "border-violet-500 focus:ring-2 focus:ring-violet-400"
+     }`;
   const toggleFrequency = async (r, type) => {
     try {
       const isRecurring = Number(r.frequency) === 1;
@@ -130,38 +224,40 @@ const BudgetPage = () => {
       showToast("Erreur suppression ❌");
     }
   };
-
-  const handleNewMonth = () => setShowConfirmModal(true);
-
-  const confirmNewMonth = async () => {
-    setShowConfirmModal(false);
-    try {
-      const recurringExpenses = expenses.filter((t) => t.frequency === 1);
-      const nonRecurringExpenses = expenses.filter((t) => t.frequency === -1);
-      const recurringRevenues = revenues.filter((t) => t.frequency === 1);
-      const nonRecurringRevenues = revenues.filter((t) => t.frequency === -1);
-
-      const allNonRecurring = [...nonRecurringExpenses, ...nonRecurringRevenues];
-      await Promise.all(allNonRecurring.map((t) => deleteTransaction(userId, t.id)));
-
-      setExpenses(recurringExpenses);
-      setRevenues(recurringRevenues);
-      showToast("Nouveau mois activé ✅ !");
-    } catch (error) {
-      console.error(error);
-      showToast("Erreur !");
-    }
-  };
-
+  
+    const handleNewMonth = () => setShowConfirmModal(true);
+  
+    const confirmNewMonth = async () => {
+      setShowConfirmModal(false);
+      try {
+        const recurringExpenses = expenses.filter((t) => t.frequency === 1);
+        const nonRecurringExpenses = expenses.filter((t) => t.frequency === -1);
+        const recurringRevenues = revenues.filter((t) => t.frequency === 1);
+        const nonRecurringRevenues = revenues.filter((t) => t.frequency === -1);
+  
+        const allNonRecurring = [...nonRecurringExpenses, ...nonRecurringRevenues];
+        await Promise.all(allNonRecurring.map((t) => deleteTransaction(userId, t.id)));
+  
+        setExpenses(recurringExpenses);
+        setRevenues(recurringRevenues);
+        showToast("Nouveau mois activé ✅ !");
+      } catch (error) {
+        console.error(error);
+        showToast("Erreur !");
+      }
+    };
   return (
     <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
  
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+
         <p className="text-lg font-semibold">
           Votre balance ce mois-ci :
-          <span className={balance >= 0 ? "text-green-600 ml-2" : "text-red-600 ml-2"}>
-            {balance >= 0 ? `+${balance}` : balance} $
-          </span>
+        <span className={balance >= 0 ? "text-green-600 ml-2" : "text-red-600 ml-2"}>
+  {balance >= 0
+    ? `+${formatAmount(balance)}`
+    : formatAmount(balance)}
+</span>
         </p>
         <button
           onClick={handleNewMonth}
@@ -169,15 +265,16 @@ const BudgetPage = () => {
         >
           Nouveau mois
         </button>
-      </div>
-
+     
+ </div>
       <h1 className="text-xl font-bold mb-4 text-violet-900">Budget Mensuel</h1>
+   
 
-
+      {/* REVENUES */}
       <div className="mb-8">
-        <h2 className="text-lg font-bold mb-1">Revenus</h2>
-    
-        <div className="overflow-x-auto">
+        <h2 className="font-bold mb-2">Revenus</h2>
+
+         <div className="overflow-x-auto">
           <table className="w-full bg-white shadow rounded">
             <thead>
               <tr className="bg-gray-200">
@@ -187,12 +284,12 @@ const BudgetPage = () => {
                 <th className="p-2 text-left hidden md:table-cell "></th>
               </tr>
             </thead>
-            <tbody>
-              {revenues.map((r) => (
-                <tr key={r.id} className="border-b">
-                  <td className="p-2">{r.description}</td>
-                  <td className="p-2">{r.amount} $</td>
-                  <td className="p-2 hidden md:table-cell">
+    <tbody>
+            {revenues.map((r) => (
+              <tr key={r.id}>
+                <td className="p-2">{r.description}</td>
+                <td className="p-2">{r.amount} $</td>
+                   <td className="p-2 hidden md:table-cell">
                     <button
                       onClick={() => toggleFrequency(r, "Revenue")}
                       className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all
@@ -213,44 +310,63 @@ const BudgetPage = () => {
                       </svg>
                     </button>
                   </td>
-                </tr>
-              ))}
-              <tr>
-                <td className="p-2">
-                  <input
-                    className="border rounded px-2 w-full"
-                    value={newRevenue.description}
-                    onChange={(e) => setNewRevenue({ ...newRevenue, description: e.target.value })}
-                    placeholder="Description"
-                  />
-                </td>
-                <td className="p-2">
-                  <input
-                    type="number"
-                    className="border rounded px-2 w-full"
-                    value={newRevenue.amount}
-                    onChange={(e) => setNewRevenue({ ...newRevenue, amount: e.target.value })}
-                    placeholder="Montant"
-                  />
-                </td>
-                <td className="hidden md:table-cell"></td>
-                <td>
-                  <button onClick={handleAddRevenue} className="text-green-600 font-bold w-full hidden md:table-cell"   title="Ajouter">
-                    Ajouter   
-                  </button>
-                </td>
               </tr>
-            </tbody>
-          </table>
-        </div>
-        <p className="text-right font-semibold mt-2">Total Revenus : {totalRevenue} $</p>
+            ))}
+
+            {/* INPUT */}
+            <tr>
+              <td className="p-2">
+                <input
+                  className={inputStyle(errorsRevenue.description, newRevenue.description)}
+                  value={newRevenue.description}
+                  onChange={(e) =>
+                    setNewRevenue({ ...newRevenue, description: e.target.value })
+                  }
+                  placeholder="Description"
+                />
+                {errorsRevenue.description && (
+                  <p className="text-red-500 text-sm">{errorsRevenue.description}</p>
+                )}
+              </td>
+
+              <td className="p-2">
+                <input
+                  type="number"
+                  min="0"
+                  onKeyDown={(e) =>
+                    ["e", "E", "+", "-"].includes(e.key) && e.preventDefault()
+                  }
+                  className={inputStyle(errorsRevenue.amount, newRevenue.amount)}
+                  value={newRevenue.amount}
+                  onChange={(e) =>
+                    setNewRevenue({ ...newRevenue, amount: e.target.value })
+                  }
+                  placeholder="Montant"
+                />
+                {errorsRevenue.amount && (
+                  <p className="text-red-500 text-sm">{errorsRevenue.amount}</p>
+                )}
+              </td>
+
+              <td>
+                <button onClick={handleAddRevenue} className="text-green-600 font-bold">
+                  Ajouter
+                </button>
+              </td>
+
+            </tr>
+      </tbody>
+        </table>
+             </div>
+                <p className="text-right font-semibold mt-2">Total des Revenus : {formatAmount(totalRevenue)} $</p>
       </div>
 
-      {/* Dépenses */}
+      {/* EXPENSES */}
       <div className="mb-8">
-        <h2 className="text-lg font-bold mb-1">Dépenses</h2>
-      
-        <div className="overflow-x-auto">
+        <h2 className="font-bold mb-2">Dépenses</h2>
+
+    
+          <div className="overflow-x-auto">
           <table className="w-full bg-white shadow rounded">
             <thead>
               <tr className="bg-gray-200">
@@ -261,88 +377,111 @@ const BudgetPage = () => {
                 <th className="p-2 text-left hidden md:table-cell"></th>
               </tr>
             </thead>
-            <tbody>
-              {expenses.map((e) => (
-                <tr key={e.id} className="border-b">
-                  <td className="p-2">{e.description}</td>
-                  <td className="p-2">{e.category}</td>
-                  <td className="p-2">{e.amount} $</td>
-                  <td className="p-2 hidden md:table-cell">
-                    <select
-                      className={`border rounded px-2 py-1 transition-all
-                        ${e.frequency === 1 ? "bg-green-100 border-green-400" : "bg-gray-100 border-gray-300"}`}
-                      value={e.frequency === 1 ? "Mensuelle" : ""}
-                      title={e.frequency === 1 ? "Récurrence" : "Non Récurrence"}
-                      onChange={async (event) => {
-                        const freqValue = event.target.value === "Mensuelle" ? 1 : -1;
-                        setExpenses((prev) => prev.map((item) => (item.id === e.id ? { ...item, frequency: freqValue } : item)));
-                        try {
-                          await updateTransaction(userId, e.id, { ...e, frequency: freqValue });
-                          showToast("Récurrence mise à jour ✅");
-                        } catch (error) {
-                          console.error("Erreur update fréquence :", error);
-                        }
-                      }}
-                    >
-                      <option value="">-</option>
-                      <option value="Mensuelle">Mensuelle</option>
-                    </select>
-                  </td>
-                  <td className="p-2 hidden md:table-cell">
-                    <button
-                      onClick={() => openDeleteModal(e.id, "Expense")}
-                      className="text-red-500 hover:text-red-700 transition-colors"
-                      title="Supprimer"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M3 6h18v2H3V6zm2 3h14v13H5V9zm5-5h4v2h-4V4z" />
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              <tr>
-                <td className="p-2">
-                  <input
-                    className="border rounded px-2 w-full"
-                    value={newExpense.description}
-                    onChange={(e) => setNewExpense({ ...newExpense, description: e.target.value })}
-                    placeholder="Description"
-                  />
-                </td>
-                <td className="p-2">
-                  <input
-                    className="border rounded px-2 w-full"
-                    value={newExpense.category}
-                    onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}
-                    placeholder="Catégorie"
-                  />
-                </td>
-                <td className="p-2">
-                  <input
-                    type="number"
-                    className="border rounded px-2 w-full"
-                    value={newExpense.amount}
-                    onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
-                    placeholder="Coût"
-                  />
-                </td>
-                <td className="hidden md:table-cell"></td>
-                <td>
-                  <button onClick={handleAddExpense} className="text-green-600 font-bold w-full hidden md:table-cell">
-                    Ajouter
-                  </button>
-                </td>
+          <tbody>
+            {expenses.map((e) => (
+              <tr key={e.id}>
+                <td className="p-2">{e.description}</td>
+                <td className="p-2">{e.category}</td>
+                <td className="p-2">{e.amount} $</td>
+                    <td className="p-2 hidden md:table-cell">
+                                    <select
+                                      className={`border rounded px-2 py-1 transition-all
+                                        ${e.frequency === 1 ? "bg-green-100 border-green-400" : "bg-gray-100 border-gray-300"}`}
+                                      value={e.frequency === 1 ? "Mensuelle" : ""}
+                                      title={e.frequency === 1 ? "Récurrence" : "Non Récurrence"}
+                                      onChange={async (event) => {
+                                        const freqValue = event.target.value === "Mensuelle" ? 1 : -1;
+                                        setExpenses((prev) => prev.map((item) => (item.id === e.id ? { ...item, frequency: freqValue } : item)));
+                                        try {
+                                          await updateTransaction(userId, e.id, { ...e, frequency: freqValue });
+                                          showToast("Récurrence mise à jour ✅");
+                                        } catch (error) {
+                                          console.error("Erreur update fréquence :", error);
+                                        }
+                                      }}
+                                    >
+                                      <option value="">-</option>
+                                      <option value="Mensuelle">Mensuelle</option>
+                                    </select>
+                                  </td>
+                                  <td className="p-2 hidden md:table-cell">
+                                    <button
+                                      onClick={() => openDeleteModal(e.id, "Expense")}
+                                      className="text-red-500 hover:text-red-700 transition-colors"
+                                      title="Supprimer"
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M3 6h18v2H3V6zm2 3h14v13H5V9zm5-5h4v2h-4V4z" />
+                                      </svg>
+                                    </button>
+                                  </td>
               </tr>
-            </tbody>
-          </table>
-        </div>
-        <p className="text-right font-semibold mt-2">Total Dépenses : {totalExpenses} $</p>
-      </div>
+            ))}
 
- 
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+    
+            <tr>
+              <td className="p-2">
+                <input
+                  className={inputStyle(errorsExpense.description, newExpense.description)}
+                  value={newExpense.description}
+                  onChange={(e) =>
+                    setNewExpense({ ...newExpense, description: e.target.value })
+                  }
+                  placeholder="Description"
+                />
+                {errorsExpense.description && (
+                  <p className="text-red-500 text-sm">{errorsExpense.description}</p>
+                )}
+              </td>
+
+              <td className="p-2">
+                <input
+                  className={inputStyle(errorsExpense.category, newExpense.category)}
+                  value={newExpense.category}
+                  onChange={(e) =>
+                    setNewExpense({ ...newExpense, category: e.target.value })
+                  }
+                  placeholder="Catégorie"
+                />
+                {errorsExpense.category && (
+                  <p className="text-red-500 text-sm">{errorsExpense.category}</p>
+                )}
+              </td>
+
+              <td className="p-2">
+                <input
+                  type="number"
+                  min="0"
+                  onKeyDown={(e) =>
+                    ["e", "E", "+", "-"].includes(e.key) && e.preventDefault()
+                  }
+                  className={inputStyle(errorsExpense.amount, newExpense.amount)}
+                  value={newExpense.amount}
+                  onChange={(e) =>
+                    setNewExpense({ ...newExpense, amount: e.target.value })
+                  }
+                  placeholder="Coût"
+                />
+                {errorsExpense.amount && (
+                  <p className="text-red-500 text-sm">{errorsExpense.amount}</p>
+                )}
+              </td>
+
+              <td>
+                <button onClick={handleAddExpense} className="text-green-600 font-bold">
+                  Ajouter
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+             <p className="text-right font-semibold mt-2">Total des Dépenses : {formatAmount(totalExpenses)} $</p>
+      </div>
+         </div>
+   
+         {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center 
+        bg-opacity-30">
           <div className="bg-white rounded-2xl shadow-xl p-6 w-96 animate-modal-pop">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Supprimer cette transaction ?</h2>
             <p className="text-gray-600 mb-6">Cette action est irréversible. Êtes-vous sûr de vouloir continuer ?</p>
