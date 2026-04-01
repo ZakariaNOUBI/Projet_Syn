@@ -1,92 +1,223 @@
-import { useState, useContext, useEffect } from 'react';
+import { useState, useContext, useEffect, useRef, useCallback } from 'react';
 import { UserContext } from '../context/UserContext';
-import { getUser, updateUser, getAddresses, updateAddress, getSchoolDetails, updateSchoolDetails, getBankingDetails, updateBankingDetails } from '../services/api';
+import { getUser, updateUser, getAddresses, updateAddress, getSchoolDetails, updateSchoolDetails, getBankingDetails, updateBankingDetails, deleteAddress } from '../services/api';
 
-function FieldLabel({ text, required = false }) {
+// COMPOSANTS RÉUTILISABLES
+
+// Libellé réutilisable pour les champs du formulaire
+
+function FieldLabel({ text, required = false, htmlFor }) {
   return (
-    <label className="block text-sm font-medium text-gray-700 mb-1">
+    <label htmlFor={htmlFor} className="block text-base md:text-lg font-medium mb-1">
       {text} {required && <span className="text-red-500">*</span>}
     </label>
   );
 }
 
-function Field({ label, required = false, value, onChange, type = 'text', isEditing }) {
+// Champ réutilisable pour l'affichage et l'édition
+
+function Field({ id, prefix = '', label, required = false, value, onChange, type = 'text', isEditing, profileCompleted }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === 'password';
+  const fieldId = prefix ? `${prefix}-${id}` : id;
+
   return (
     <div className="mb-4">
-      <FieldLabel text={label} required={required} />
+      <FieldLabel text={label} htmlFor={fieldId} required={required && (isEditing || !profileCompleted)} />
       {isEditing ? (
-        <input type={type} value={value} onChange={(e) => onChange(e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+        <div className="relative">
+          <input
+            id={fieldId}
+            name={fieldId}
+            type={isPassword ? (showPassword ? 'text' : 'password') : type}
+            value={value}
+            placeholder={isPassword ? 'Nouveau mot de passe' : ''}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full border-2 border-gray-200 px-3 py-2 rounded-lg text-sm md:text-base pr-10 hover:border-purple-400 focus:ring-2 focus:ring-purple-500 focus:outline-none"
+          />
+          {isPassword && (
+            <button
+              type="button"
+              aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute right-3 top-1/3 -translate-y-1/2 text-gray-600 hover:text-gray-900">
+              {showPassword ? (
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
+            </button>
+          )}
+          {isPassword && <p className="mt-1 text-sm md:text-base text-gray-600 ml-3">Laisser vide pour conserver le mot de passe actuel</p>}
+        </div>
       ) : (
-        <p className={`bg-gray-200 rounded px-3 py-2 text-sm ${value ? 'text-gray-700' : 'text-gray-600 italic'}`}>{type === 'password' ? '•••••••' : value || 'Non renseigné'}</p>
+        <p className={`text-base md:text-lg ${value ? 'text-gray-700' : 'text-gray-600 italic'}`}>{isPassword ? '•••••••' : value || 'Non renseigné'}</p>
       )}
     </div>
   );
 }
 
+// Bloc réutilisable pour afficher ou modifier une adresse
+
 const PROVINCES = ['QC', 'ON', 'NL', 'NS', 'PE', 'NB', 'MB', 'SK', 'AB', 'BC', 'YT', 'NT', 'NU'];
+function AddressFields({ address, onChange, isEditing, profileCompleted, prefix }) {
+  const update = (field, value) => {
+    if (!onChange) return;
+    onChange({ ...address, [field]: value });
+  };
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+      <Field
+        prefix={prefix}
+        id="streetNr"
+        label="Numéro civique"
+        required
+        value={address.streetNumber}
+        onChange={(value) => update('streetNumber', value)}
+        isEditing={isEditing}
+        profileCompleted={profileCompleted}
+      />
+      <Field prefix={prefix} id="street" label="Rue" required value={address.streetName} onChange={(value) => update('streetName', value)} isEditing={isEditing} profileCompleted={profileCompleted} />
+      <Field prefix={prefix} id="city" label="Ville" required value={address.city} onChange={(value) => update('city', value)} isEditing={isEditing} profileCompleted={profileCompleted} />
+
+      <div className="mb-4">
+        <FieldLabel htmlFor={`${prefix}-province`} text="Province" required={!profileCompleted || isEditing} />
+        {isEditing ? (
+          <select
+            id={`${prefix}-province`}
+            name={`${prefix}-province`}
+            value={address.province}
+            onChange={(e) => update('province', e.target.value)}
+            className="w-full border-2 border-gray-200 px-3 py-2 rounded-lg text-sm md:text-base pr-10 hover:border-purple-400 focus:ring-2 focus:ring-purple-500 focus:outline-none">
+            <option value="">Sélectionner...</option>
+            {PROVINCES.map((province) => (
+              <option key={province} value={province}>
+                {province}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <p className={`text-base md:text-lg  ${address.province ? 'text-gray-700' : 'text-gray-600 italic'}`}>{address.province || 'Non renseigné'}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Fenêtre modale de confirmation pour la suppression
+
+function ConfirmModal({ message, onConfirm, onCancel }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+      <div className="bg-white rounded-2xl shadow-xl p-6 w-96 animate-modal-pop">
+        <p className="text-gray-600 mb-6">{message}</p>
+        <div className="flex justify-end gap-3">
+          <button onClick={onCancel} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
+            Annuler
+          </button>
+          <button onClick={onConfirm} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+            Supprimer
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+//CONSTANTES ET VALEURS PAR DÉFAUT
+
+const EMPTY_PERSONAL_INFO = {
+  firstName: '',
+  lastName: '',
+  email: '',
+  password: '',
+  phone: '',
+  birthDate: '',
+  isActive: true,
+};
+
+const EMPTY_PERSONAL_ADDRESS = {
+  streetNumber: '',
+  streetName: '',
+  city: '',
+  province: '',
+  country: 'CA',
+  type: 'PERSONAL',
+};
+
+const EMPTY_WORK_ADDRESS = {
+  streetNumber: '',
+  streetName: '',
+  city: '',
+  province: '',
+  country: 'CA',
+  type: 'WORK',
+};
+
+const EMPTY_SCHOOL_INFO = {
+  schoolName: '',
+  fieldOfStudy: '',
+  startDate: '',
+  projectedEndDate: '',
+};
+
+const EMPTY_BANKING_INFO = {
+  institutionName: '',
+  accountInfo: '',
+  loanInfo: '',
+  other: '',
+};
+
+const EMPTY_SECTION_ERRORS = {
+  personalAddress: '',
+  workAddress: '',
+  school: '',
+  banking: '',
+};
+
+// ÉTATS DU COMPOSANT
 
 function UpdateProfile() {
   const { user, loading } = useContext(UserContext);
   const userId = user?.id;
 
+  // États d'interface
+
   const [isEditing, setIsEditing] = useState(false);
+  const [profileCompleted, setProfileCompleted] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [showWorkAddress, setShowWorkAddress] = useState(false);
+  const [workAddressExistsInBackend, setWorkAddressExistsInBackend] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const [personalInfo, setPersonalInfo] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    phone: '',
-    birthDate: '',
-    isActive: true,
-  });
-
+  // États de validation
   const [errors, setErrors] = useState({
     firstName: '',
     email: '',
     password: '',
   });
+  const [sectionErrors, setSectionErrors] = useState(EMPTY_SECTION_ERRORS);
 
-  const [personalAddress, setPersonalAddress] = useState({
-    streetNumber: '',
-    streetName: '',
-    city: '',
-    province: '',
-    country: 'CA',
-    type: 'PERSONAL',
-  });
+  // États des données du profil
+  const [personalInfo, setPersonalInfo] = useState(EMPTY_PERSONAL_INFO);
+  const [personalAddress, setPersonalAddress] = useState(EMPTY_PERSONAL_ADDRESS);
+  const [workAddress, setWorkAddress] = useState(EMPTY_WORK_ADDRESS);
+  const [schoolInfo, setSchoolInfo] = useState(EMPTY_SCHOOL_INFO);
+  const [bankingInfo, setBankingInfo] = useState(EMPTY_BANKING_INFO);
 
-  const [workAddress, setWorkAddress] = useState({
-    streetNumber: '',
-    streetName: '',
-    city: '',
-    province: '',
-    country: 'CA',
-    type: 'WORK',
-  });
+  // Référence pour le timer du message de succès
+  const timerRef = useRef(null);
 
-  const [schoolInfo, setSchoolInfo] = useState({
-    schoolName: '',
-    fieldOfStudy: '',
-    startDate: '',
-    projectedEndDate: '',
-  });
-
-  const [bankingInfo, setBankingInfo] = useState({
-    institutionName: '',
-    accountInfo: '',
-    loanInfo: '',
-    other: '',
-  });
-
-  const [sectionErrors, setSectionErrors] = useState({
-    personalAddress: '',
-    workAddress: '',
-    school: '',
-    banking: '',
-  });
+  // VALEURS DÉRIVÉES
 
   const passwordCriteria = {
     length: personalInfo.password.length >= 8,
@@ -94,6 +225,10 @@ function UpdateProfile() {
     lowercase: /[a-z]/.test(personalInfo.password),
     number: /\d/.test(personalInfo.password),
   };
+
+  // FONCTIONS UTILITAIRES ET VALIDATION
+
+  const hasWorkAddressData = !!workAddress.streetNumber || !!workAddress.streetName || !!workAddress.city || !!workAddress.province;
 
   const toISODate = (dateString) => {
     if (!dateString) return null;
@@ -155,12 +290,11 @@ function UpdateProfile() {
     return isValid;
   };
 
-  async function loadProfileData() {
+  // CHARGEMENT DES DONNÉES DU PROFIL
+
+  const loadProfileData = useCallback(async () => {
     try {
       const userData = await getUser(userId);
-      const addresses = await getAddresses(userId);
-      const schoolData = await getSchoolDetails(userId);
-      const bankingData = await getBankingDetails(userId);
 
       if (userData) {
         setPersonalInfo({
@@ -173,74 +307,154 @@ function UpdateProfile() {
           isActive: userData.isActive ?? true,
         });
       }
+      const [addressesResult, schoolResult, bankingResult] = await Promise.allSettled([getAddresses(userId), getSchoolDetails(userId), getBankingDetails(userId)]);
+      if (addressesResult.status === 'fulfilled' && Array.isArray(addressesResult.value)) {
+        const addresses = addressesResult.value;
 
-      if (addresses && Array.isArray(addresses)) {
         const personal = addresses.find((address) => address.type === 'PERSONAL');
         const work = addresses.find((address) => address.type === 'WORK');
 
         if (personal) {
           setPersonalAddress({
+            ...EMPTY_PERSONAL_ADDRESS,
             streetNumber: personal.streetNumber || '',
             streetName: personal.streetName || '',
             city: personal.city || '',
             province: personal.province || '',
             country: personal.country || 'CA',
-            type: 'PERSONAL',
           });
+        } else {
+          setPersonalAddress(EMPTY_PERSONAL_ADDRESS);
         }
 
         if (work) {
           setWorkAddress({
+            ...EMPTY_WORK_ADDRESS,
             streetNumber: work.streetNumber || '',
             streetName: work.streetName || '',
             city: work.city || '',
             province: work.province || '',
             country: work.country || 'CA',
-            type: 'WORK',
           });
-
+          setWorkAddressExistsInBackend(true);
           setShowWorkAddress(true);
+        } else {
+          setWorkAddress(EMPTY_WORK_ADDRESS);
+          setWorkAddressExistsInBackend(false);
+          setShowWorkAddress(false);
+        }
+      } else if (addressesResult.status === 'rejected') {
+        if (addressesResult.reason?.response?.status === 404) {
+          setPersonalAddress(EMPTY_PERSONAL_ADDRESS);
+          setWorkAddress(EMPTY_WORK_ADDRESS);
+          setShowWorkAddress(false);
+          setWorkAddressExistsInBackend(false);
+        } else {
+          console.error('Erreur récupération adresses :', addressesResult.reason);
         }
       }
+      if (schoolResult.status === 'fulfilled' && schoolResult.value) {
+        const schoolData = schoolResult.value;
 
-      if (schoolData) {
         setSchoolInfo({
           schoolName: schoolData.schoolName || '',
           fieldOfStudy: schoolData.fieldOfStudy || '',
           startDate: schoolData.startDate ? formatDateForInput(schoolData.startDate) : '',
           projectedEndDate: schoolData.projectedEndDate ? formatDateForInput(schoolData.projectedEndDate) : '',
         });
+      } else if (schoolResult.status === 'rejected') {
+        if (schoolResult.reason?.response?.status === 404) {
+          setSchoolInfo(EMPTY_SCHOOL_INFO);
+        } else {
+          console.error('Erreur récupération école :', schoolResult.reason);
+        }
       }
+      if (bankingResult.status === 'fulfilled' && bankingResult.value) {
+        const bankingData = bankingResult.value;
 
-      if (bankingData) {
         setBankingInfo({
           institutionName: bankingData.institutionName || '',
           accountInfo: bankingData.accountInfo || '',
           loanInfo: bankingData.loanInfo || '',
           other: bankingData.other || '',
         });
+      } else if (bankingResult.status === 'rejected') {
+        if (bankingResult.reason?.response?.status === 404) {
+          setBankingInfo(EMPTY_BANKING_INFO);
+        } else {
+          console.error('Erreur récupération bancaire :', bankingResult.reason);
+        }
       }
+      const isCompleted = !!userData?.firstName && !!userData?.email;
+      setProfileCompleted(isCompleted);
     } catch (error) {
       console.error('Erreur chargement profil :', error);
       setError('Erreur lors du chargement du profil.');
     }
-  }
+  }, [userId]);
 
+  //EFFETS
+  // Charger les données du profil lorsque l'identifiant utilisateur est disponible
   useEffect(() => {
     if (userId) {
       loadProfileData();
     }
-  }, [userId]);
+  }, [userId, loadProfileData]);
+
+  // Nettoyer le timer du message de succès au démontage du composant
+  useEffect(() => {
+    return () => {
+      clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  //  GESTION DES ACTIONS UTILISATEUR
+  // Sauvegarder les données du profil dans le backend
+
+  const saveProfileData = async () => {
+    await updateUser(userId, {
+      firstName: personalInfo.firstName,
+      lastName: personalInfo.lastName,
+      email: personalInfo.email,
+      password: personalInfo.password || undefined,
+      phone: personalInfo.phone,
+      birthDate: personalInfo.birthDate ? toISODate(personalInfo.birthDate) : null,
+      isActive: personalInfo.isActive,
+    });
+
+    await updateAddress(userId, {
+      ...personalAddress,
+    });
+
+    if (showWorkAddress && hasWorkAddressData) {
+      await updateAddress(userId, { ...workAddress });
+    }
+
+    await updateSchoolDetails(userId, {
+      schoolName: schoolInfo.schoolName,
+      fieldOfStudy: schoolInfo.fieldOfStudy,
+      startDate: toISODate(schoolInfo.startDate),
+      projectedEndDate: schoolInfo.projectedEndDate ? toISODate(schoolInfo.projectedEndDate) : null,
+    });
+
+    await updateBankingDetails(userId, {
+      institutionName: bankingInfo.institutionName,
+      accountInfo: bankingInfo.accountInfo,
+      loanInfo: bankingInfo.loanInfo,
+      other: bankingInfo.other,
+    });
+  };
+
+  // Valider puis sauvegarder le profil
 
   const handleSave = async () => {
+    if (!userId) {
+      setError('Utilisateur introuvable.');
+      return;
+    }
     const isFormValid = validateForm();
 
-    const newSectionErrors = {
-      personalAddress: '',
-      workAddress: '',
-      school: '',
-      banking: '',
-    };
+    const newSectionErrors = { ...EMPTY_SECTION_ERRORS };
 
     let areSectionsValid = true;
 
@@ -249,7 +463,7 @@ function UpdateProfile() {
       areSectionsValid = false;
     }
 
-    if (showWorkAddress && !isAddressComplete(workAddress)) {
+    if (showWorkAddress && hasWorkAddressData && !isAddressComplete(workAddress)) {
       newSectionErrors.workAddress = "Veuillez remplir tous les champs requis de l'adresse au travail.";
       areSectionsValid = false;
     }
@@ -270,48 +484,29 @@ function UpdateProfile() {
       return;
     }
     try {
-      console.log('Formulaire ok');
-
-      await updateUser(userId, {
-        firstName: personalInfo.firstName,
-        lastName: personalInfo.lastName,
-        email: personalInfo.email,
-        password: personalInfo.password || undefined,
-        phone: personalInfo.phone,
-        birthDate: personalInfo.birthDate ? toISODate(personalInfo.birthDate) : null,
-        isActive: personalInfo.isActive,
-      });
-
-      await updateAddress(userId, {
-        ...personalAddress,
-      });
-
-      if (showWorkAddress) {
-        await updateAddress(userId, {
-          ...workAddress,
-        });
-      }
-
-      await updateSchoolDetails(userId, {
-        schoolName: schoolInfo.schoolName,
-        fieldOfStudy: schoolInfo.fieldOfStudy,
-        startDate: toISODate(schoolInfo.startDate),
-        projectedEndDate: schoolInfo.projectedEndDate ? toISODate(schoolInfo.projectedEndDate) : null,
-      });
-
-      await updateBankingDetails(userId, {
-        institutionName: bankingInfo.institutionName,
-        accountInfo: bankingInfo.accountInfo,
-        loanInfo: bankingInfo.loanInfo,
-        other: bankingInfo.other,
-      });
+      await saveProfileData();
 
       setIsEditing(false);
+      try {
+        await loadProfileData();
+      } catch (reloadError) {
+        console.error('Erreur rechargement profil :', reloadError);
+      }
+
+      setError('');
+      setSuccessMessage('Votre profil a été mis à jour avec succès');
+      clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        setSuccessMessage('');
+      }, 4000);
     } catch (error) {
       console.error('Erreur sauvegarde profil :', error);
       setError('Une erreur est survenue lors de la sauvegarde.');
+      setSuccessMessage('');
     }
   };
+
+  // Annuler les modifications et recharger les données du backend
 
   const handleCancel = async () => {
     setErrors({
@@ -319,16 +514,8 @@ function UpdateProfile() {
       email: '',
       password: '',
     });
-
-    setSectionErrors({
-      personalAddress: '',
-      workAddress: '',
-      school: '',
-      banking: '',
-    });
-
+    setSectionErrors(EMPTY_SECTION_ERRORS);
     setError('');
-
     if (userId) {
       await loadProfileData();
     }
@@ -336,8 +523,36 @@ function UpdateProfile() {
     setIsEditing(false);
   };
 
+  // Supprimer l'adresse au travail de l'interface et du backend
+
+  const handleDeleteWorkAddress = async () => {
+    if (!userId) return;
+
+    try {
+      if (workAddressExistsInBackend) {
+        await deleteAddress(userId, 'WORK');
+        setWorkAddressExistsInBackend(false);
+      }
+
+      setWorkAddress(EMPTY_WORK_ADDRESS);
+
+      setShowWorkAddress(false);
+      setSectionErrors((prev) => ({ ...prev, workAddress: '' }));
+      setError('');
+    } catch (error) {
+      console.error('Erreur suppression adresse travail :', error);
+      setError("Impossible de supprimer l'adresse au travail.");
+    } finally {
+      setShowDeleteModal(false);
+    }
+  };
+
+  
   return (
     <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
+      {showDeleteModal && (
+        <ConfirmModal message="Voulez-vous vraiment supprimer l'adresse au travail ? Cette action est irréversible." onConfirm={handleDeleteWorkAddress} onCancel={() => setShowDeleteModal(false)} />
+      )}
       <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-2">
         <h1 className="text-2xl md:text-4xl font-bold text-violet-900">Détail du profil</h1>
 
@@ -357,199 +572,191 @@ function UpdateProfile() {
         )}
       </div>
 
-      {/* Card-1 */}
+      {error && <p className="text-red-500 text-sm md:text-base mb-4">{error}</p>}
+      {successMessage && (
+        <div className="flex justify-center mb-4">
+          <div className="text-green-700 font-bold text-sm md:text-base">{successMessage}</div>
+        </div>
+      )}
+      {/* Section renseignements personnels */}
       <div className="bg-white shadow-md border border-gray-300 rounded p-6 mb-6">
-        <h2 className="text-lg font-bold mb-6">Renseignements personnels</h2>
+        <h2 className="text-xl md:text-2xl font-bold mb-6">Renseignements personnels</h2>
 
-        <p className="text-sm text-gray-700 mb-4">
-          Les champs marqués d'un <span className="text-red-500 font-bold">*</span> sont obligatoires.
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-4">
+        {(isEditing || !profileCompleted) && (
+          <p className="text-sm md:text-base text-gray-700 mb-4">
+            Les champs marqués d'un <span className="text-red-500 font-bold">*</span> sont obligatoires.
+          </p>
+        )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
           <div>
-            <Field label="Prénom" required value={personalInfo.firstName} isEditing={isEditing} onChange={(newValue) => setPersonalInfo({ ...personalInfo, firstName: newValue })} />
+            <Field
+              prefix="personal"
+              id="firstName"
+              label="Prénom"
+              required
+              value={personalInfo.firstName}
+              isEditing={isEditing}
+              profileCompleted={profileCompleted}
+              onChange={(newValue) => setPersonalInfo({ ...personalInfo, firstName: newValue })}
+            />
 
-            {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>}
+            {errors.firstName && <p className="text-red-500 text-sm md:text-base mt-1">{errors.firstName}</p>}
           </div>
           <div>
-            <Field label="Nom" value={personalInfo.lastName} isEditing={isEditing} onChange={(newValue) => setPersonalInfo({ ...personalInfo, lastName: newValue })} />
-          </div>
-          <div>
-            <Field label="Courriel" required value={personalInfo.email} isEditing={isEditing} onChange={(newValue) => setPersonalInfo({ ...personalInfo, email: newValue })} />
-
-            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
-          </div>
-          <div>
-            <Field label="Téléphone" value={personalInfo.phone} isEditing={isEditing} onChange={(newValue) => setPersonalInfo({ ...personalInfo, phone: newValue })} />
-          </div>
-          <div>
-            <Field label="Date de naissance" value={personalInfo.birthDate} isEditing={isEditing} onChange={(newValue) => setPersonalInfo({ ...personalInfo, birthDate: newValue })} />
+            <Field prefix="personal" id="lastName" label="Nom" value={personalInfo.lastName} isEditing={isEditing} onChange={(newValue) => setPersonalInfo({ ...personalInfo, lastName: newValue })} />
           </div>
           <div>
             <Field
-              label="Mot de passe"
+              prefix="personal"
+              id="email"
+              label="Courriel"
               required
+              value={personalInfo.email}
+              isEditing={isEditing}
+              profileCompleted={profileCompleted}
+              onChange={(newValue) => setPersonalInfo({ ...personalInfo, email: newValue })}
+            />
+
+            {errors.email && <p className="text-red-500 text-sm md:text-base mt-1">{errors.email}</p>}
+          </div>
+          <div>
+            <Field prefix="personal" id="phone" label="Téléphone" value={personalInfo.phone} isEditing={isEditing} onChange={(newValue) => setPersonalInfo({ ...personalInfo, phone: newValue })} />
+          </div>
+          <div>
+            <Field
+              prefix="personal"
+              id="birthDate"
+              label="Date de naissance"
+              type="date"
+              value={personalInfo.birthDate}
+              isEditing={isEditing}
+              onChange={(newValue) => setPersonalInfo({ ...personalInfo, birthDate: newValue })}
+            />
+          </div>
+          <div>
+            <Field
+              prefix="personal"
+              id="password"
+              label="Mot de passe"
               type="password"
               value={personalInfo.password}
               isEditing={isEditing}
+              profileCompleted={profileCompleted}
               onChange={(newValue) => setPersonalInfo({ ...personalInfo, password: newValue })}
             />
 
-            {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+            {errors.password && <p className="text-red-500 text-sm md:text-base mt-1">{errors.password}</p>}
           </div>
         </div>
       </div>
 
-      {/* Card-2 */}
+      {/* Section adresses */}
       <div className="bg-white shadow-md border border-gray-300 rounded p-6 mb-6">
-        <h2 className="text-lg font-bold mb-6">Adresses</h2>
+        <h2 className="text-xl md:text-2xl font-bold mb-6">Adresses</h2>
 
-        <p className="text-sm font-semibold text-purple-700 mb-3">Adresse personnelle</p>
-        {sectionErrors.personalAddress && <p className="text-red-500 text-sm mb-3">{sectionErrors.personalAddress}</p>}
+        <p className="text-lg md:text-xl font-semibold text-purple-700 mb-3">Adresse personnelle</p>
+        {sectionErrors.personalAddress && <p className="text-red-500 text-sm md:text-base mb-3">{sectionErrors.personalAddress}</p>}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-          <div>
-            <Field
-              label="Numéro civique"
-              required
-              value={personalAddress.streetNumber}
-              isEditing={isEditing}
-              onChange={(newValue) => setPersonalAddress({ ...personalAddress, streetNumber: newValue })}
-            />
-          </div>
-          <div>
-            <Field label="Rue" required value={personalAddress.streetName} isEditing={isEditing} onChange={(newValue) => setPersonalAddress({ ...personalAddress, streetName: newValue })} />
-          </div>
+        <AddressFields prefix="personal" address={personalAddress} onChange={setPersonalAddress} isEditing={isEditing} profileCompleted={profileCompleted} />
 
-          <div>
-            <Field label="Ville" required value={personalAddress.city} isEditing={isEditing} onChange={(newValue) => setPersonalAddress({ ...personalAddress, city: newValue })} />
-          </div>
-
-          <div className="mb-4">
-            <FieldLabel text="Province" required />
-            {isEditing ? (
-              <select
-                value={personalAddress.province}
-                onChange={(e) =>
-                  setPersonalAddress({
-                    ...personalAddress,
-                    province: e.target.value,
-                  })
-                }
-                className="w-full border border-gray-300 rounded px-3 py-2 text-sm">
-                <option value="">Sélectionner...</option>
-                {PROVINCES.map((p) => (
-                  <option key={p}>{p}</option>
-                ))}
-              </select>
-            ) : (
-              <p className={`bg-gray-200 rounded px-3 py-2 text-sm ${personalAddress.province ? 'text-gray-700' : 'text-gray-600 italic'}`}>{personalAddress.province || 'Non renseigné'}</p>
-            )}
-          </div>
-
-          <div>
-            <FieldLabel text="Pays" />
-            <span className="inline-block bg-gray-200 text-purple-800 text-sm font-bold px-3 py-2 rounded">CA</span>
-          </div>
-        </div>
-        <hr className="mb-6"></hr>
-
-        <div className="flex items-center gap-2 mb-4">
-          <input
-            type="checkbox"
-            id="showWorkAddress"
-            checked={showWorkAddress}
-            onChange={(e) => {
-              setShowWorkAddress(e.target.checked);
-              if (!e.target.checked) {
-                setWorkAddress({
-                  streetNumber: '',
-                  streetName: '',
-                  city: '',
-                  province: '',
-                  country: 'CA',
-                  type: 'WORK',
-                });
-                setSectionErrors({ ...sectionErrors, workAddress: '' });
-              }
-            }}
-            className="w-4 h-4 accent-purple-600"
-            disabled={!isEditing}
-          />
-          <label htmlFor="showWorkAddress" className="text-sm font-semibold text-purple-700 cursor-pointer">
-            Ajouter une adresse au travail
-          </label>
-        </div>
-
-        {showWorkAddress && (
-          <>
-            {sectionErrors.workAddress && <p className="text-red-500 text-sm mb-3">{sectionErrors.workAddress}</p>}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-              <div>
-                <Field label="Numéro civique" required value={workAddress.streetNumber} isEditing={isEditing} onChange={(newValue) => setWorkAddress({ ...workAddress, streetNumber: newValue })} />
-              </div>
-
-              <div>
-                <Field label="Rue" required value={workAddress.streetName} isEditing={isEditing} onChange={(newValue) => setWorkAddress({ ...workAddress, streetName: newValue })} />
-              </div>
-
-              <div>
-                <Field label="Ville" required value={workAddress.city} isEditing={isEditing} onChange={(newValue) => setWorkAddress({ ...workAddress, city: newValue })} />
-              </div>
-
-              <div className="mb-4">
-                <FieldLabel text="Province" required />
-                {isEditing ? (
-                  <select
-                    value={workAddress.province}
-                    onChange={(e) =>
-                      setWorkAddress({
-                        ...workAddress,
-                        province: e.target.value,
-                      })
-                    }
-                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm">
-                    <option value="">Sélectionner...</option>
-                    {PROVINCES.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <p className={`bg-gray-200 rounded px-3 py-2 text-sm ${workAddress.province ? 'text-gray-700' : 'text-gray-600 italic'}`}>{workAddress.province || 'Non renseigné'}</p>
-                )}
-              </div>
-
-              <div>
-                <FieldLabel text="Pays" />
-                <span className="inline-block bg-gray-200 text-purple-800 text-sm font-bold px-3 py-2 rounded">CA</span>
-              </div>
+        {isEditing && (
+          <div className="mb-4 mt-6">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="showWorkAddress"
+                checked={showWorkAddress}
+                onChange={(e) => {
+                  setShowWorkAddress(e.target.checked);
+                  if (!e.target.checked) {
+                    setSectionErrors((prev) => ({ ...prev, workAddress: '' }));
+                  }
+                }}
+                className="w-4 h-4 accent-purple-600"
+              />
+              <label htmlFor="showWorkAddress" className="text-lg md:text-xl font-semibold text-purple-700 cursor-pointer">
+                Adresse au travail
+              </label>
             </div>
+
+            <p className="ml-6 mt-1 text-sm md:text-base text-gray-600">À remplir uniquement si applicable</p>
+          </div>
+        )}
+
+        {isEditing && showWorkAddress && (
+          <>
+            {sectionErrors.workAddress && <p className="text-red-500 text-sm md:text-base mb-3">{sectionErrors.workAddress}</p>}
+            <AddressFields prefix="work" address={workAddress} onChange={setWorkAddress} isEditing={isEditing} profileCompleted={profileCompleted} />
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(true)}
+                className="px-4 py-2 text-sm font-medium text-red-500 border border-red-300 rounded hover:bg-red-600 hover:text-white transition">
+                Supprimer l'adresse au travail
+              </button>
+            </div>
+          </>
+        )}
+
+        {!isEditing && workAddressExistsInBackend && (
+          <>
+            <p className="text-base md:text-lg font-semibold text-purple-700 mb-3">Adresse au travail</p>
+            <AddressFields prefix="work" address={workAddress} isEditing={false} />
           </>
         )}
       </div>
 
-      {/* Card-3 */}
+      {/* Sections établissement scolaire et renseignements bancaires */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Section établissement scolaire */}
         <div className="bg-white shadow-md border border-gray-300 rounded p-6">
-          <h2 className="text-lg font-bold mb-6">Établissement scolaire</h2>
-          {sectionErrors.school && <p className="text-red-500 text-sm mb-3">{sectionErrors.school}</p>}
-          <div className="grid grid-cols-1 gap-4">
+          <h2 className="text-xl md:text-2xl font-bold mb-6">Établissement scolaire</h2>
+          {sectionErrors.school && <p className="text-red-500 text-sm md:text-base mb-3">{sectionErrors.school}</p>}
+          <div className="grid grid-cols-1 gap-1">
             <div>
-              <Field label="Nom de l'école" required value={schoolInfo.schoolName} isEditing={isEditing} onChange={(newValue) => setSchoolInfo({ ...schoolInfo, schoolName: newValue })} />
-            </div>
-
-            <div>
-              <Field label="Programme" required value={schoolInfo.fieldOfStudy} isEditing={isEditing} onChange={(newValue) => setSchoolInfo({ ...schoolInfo, fieldOfStudy: newValue })} />
-            </div>
-
-            <div>
-              <Field label="Date de début" required type="date" value={schoolInfo.startDate} isEditing={isEditing} onChange={(newValue) => setSchoolInfo({ ...schoolInfo, startDate: newValue })} />
+              <Field
+                prefix="school"
+                id="schoolName"
+                label="Nom de l'école"
+                required
+                value={schoolInfo.schoolName}
+                isEditing={isEditing}
+                profileCompleted={profileCompleted}
+                onChange={(newValue) => setSchoolInfo({ ...schoolInfo, schoolName: newValue })}
+              />
             </div>
 
             <div>
               <Field
+                prefix="school"
+                id="fieldOfStudy"
+                label="Programme"
+                required
+                value={schoolInfo.fieldOfStudy}
+                isEditing={isEditing}
+                profileCompleted={profileCompleted}
+                onChange={(newValue) => setSchoolInfo({ ...schoolInfo, fieldOfStudy: newValue })}
+              />
+            </div>
+
+            <div>
+              <Field
+                prefix="school"
+                id="startDate"
+                label="Date de début"
+                required
+                type="date"
+                value={schoolInfo.startDate}
+                isEditing={isEditing}
+                profileCompleted={profileCompleted}
+                onChange={(newValue) => setSchoolInfo({ ...schoolInfo, startDate: newValue })}
+              />
+            </div>
+
+            <div>
+              <Field
+                prefix="school"
+                id="projectedEndDate"
                 label="Date de fin prévue"
                 type="date"
                 value={schoolInfo.projectedEndDate}
@@ -560,31 +767,49 @@ function UpdateProfile() {
           </div>
         </div>
 
-        {/* Card-4 */}
+        {/* Section renseignements bancaires */}
         <div className="bg-white shadow-md border border-gray-300 rounded p-6">
-          <h2 className="text-lg font-bold mb-6">Renseignements bancaires</h2>
-          {sectionErrors.banking && <p className="text-red-500 text-sm mb-3">{sectionErrors.banking}</p>}
-          <div className="grid grid-cols-1 gap-4 mb-6">
+          <h2 className="text-xl md:text-2xl font-bold mb-6">Renseignements bancaires</h2>
+          {sectionErrors.banking && <p className="text-red-500 text-sm md:text-base mb-3">{sectionErrors.banking}</p>}
+          <div className="grid grid-cols-1 gap-1">
             <div>
               <Field
+                prefix="banking"
+                id="institutionName"
                 label="Nom de l'institution"
                 required
                 value={bankingInfo.institutionName}
                 isEditing={isEditing}
+                profileCompleted={profileCompleted}
                 onChange={(newValue) => setBankingInfo({ ...bankingInfo, institutionName: newValue })}
+              />
+            </div>
+            <div>
+              <Field
+                prefix="banking"
+                id="accountInfo"
+                label="Info du compte"
+                required
+                value={bankingInfo.accountInfo}
+                isEditing={isEditing}
+                profileCompleted={profileCompleted}
+                onChange={(newValue) => setBankingInfo({ ...bankingInfo, accountInfo: newValue })}
               />
             </div>
 
             <div>
-              <Field label="Info du compte" required value={bankingInfo.accountInfo} isEditing={isEditing} onChange={(newValue) => setBankingInfo({ ...bankingInfo, accountInfo: newValue })} />
+              <Field
+                prefix="banking"
+                id="loanInfo"
+                label="Info de prêt"
+                value={bankingInfo.loanInfo}
+                isEditing={isEditing}
+                onChange={(newValue) => setBankingInfo({ ...bankingInfo, loanInfo: newValue })}
+              />
             </div>
 
             <div>
-              <Field label="Info de prêt" value={bankingInfo.loanInfo} isEditing={isEditing} onChange={(newValue) => setBankingInfo({ ...bankingInfo, loanInfo: newValue })} />
-            </div>
-
-            <div>
-              <Field label="Autre" value={bankingInfo.other} isEditing={isEditing} onChange={(newValue) => setBankingInfo({ ...bankingInfo, other: newValue })} />
+              <Field prefix="banking" id="other" label="Autre" value={bankingInfo.other} isEditing={isEditing} onChange={(newValue) => setBankingInfo({ ...bankingInfo, other: newValue })} />
             </div>
           </div>
         </div>
