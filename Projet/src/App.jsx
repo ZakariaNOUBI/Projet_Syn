@@ -1,37 +1,83 @@
-import React from "react";
-import { Routes, Route } from "react-router-dom";
+import React, { useContext } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 import Sidebar from "./Components/Sidebar.jsx";
 import Header from "./Components/Header.jsx";
 
 import ProfilePage from "./pages/ProfilePage.jsx";
-import UsersListPage from "./pages/UsersListPage.jsx";
+import HomePage from "./pages/HomePage.jsx";
 import BudgetPage from "./pages/BudgetPage.jsx";
-import LoginPage from "./pages/LoginPage";
- // import UpdateProfile from "./pages/UpdateProfile.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
+import UpdateProfile from "./pages/UpdateProfile.jsx";
+import ErrorPage from "./pages/ErrorPage.jsx";
 
-import { UserProvider } from "./context/UserContext.jsx";
+import { UserProvider, UserContext } from "./context/UserContext.jsx";
+
+
+const PrivateRoute = ({ children }) => {
+  const { user } = useContext(UserContext);
+  return user ? children : <Navigate to="/connexion" replace />;
+};
+
+function AppContent() {
+  const { user } = useContext(UserContext);
+
+  return (
+    <div className="flex h-screen">
+      {/* Sidebar visible seulement si connecté */}
+      {user && <Sidebar />}
+
+      <main className="flex-1 flex flex-col overflow-auto bg-gray-50">
+        {/* Header toujours visible */}
+        <Header />
+
+        <div className="p-6 flex-1 overflow-auto">
+          <Routes>
+            {/* Routes publiques */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/connexion" element={<LoginPage />} />
+            <Route path="/inscription" element={<ProfilePage />} />
+
+            {/* Routes privées */}
+            <Route
+              path="/budget"
+              element={
+                <PrivateRoute>
+                  <BudgetPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <PrivateRoute>
+                  <Dashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/updateProfil"
+              element={
+                <PrivateRoute>
+                  <UpdateProfile />
+                </PrivateRoute>
+              }
+            />
+
+            {/* Route 404 */}
+            <Route path="*" element={<ErrorPage />} />
+          </Routes>
+        </div>
+      </main>
+    </div>
+  );
+}
 
 function App() {
   return (
     <UserProvider>
-      <div className="flex h-screen">
-        <Sidebar />
-        <main className="flex-1 flex flex-col overflow-auto bg-gray-50">
-          <Header />
-          <div className="p-6 flex-1 overflow-auto">
-            <Routes>
-              <Route path="/connexion" element={<LoginPage />} />
-              <Route path="/" element={<UsersListPage />} />
-              <Route path="/inscription" element={<ProfilePage />} />
-              <Route path="/budget" element={<BudgetPage />} />
-                     {/* <Route path="/update-profile" element={<UpdateProfile />} /> */}
-              <Route path="/about" element={<h1>À propos</h1>} />
-              <Route path="/home" element={<h1>Accueil</h1>} />
-            </Routes>
-          </div>
-        </main>
-      </div>
+      <AppContent />
     </UserProvider>
   );
 }
