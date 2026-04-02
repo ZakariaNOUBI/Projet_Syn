@@ -12,9 +12,9 @@ const Header = () => {
   const isLoggedIn = !!user;
 
   const handleLogout = () => {
-    logout();           // Supprime user du contexte et localStorage
-    setMenuOpen(false); // Ferme menu mobile
-    navigate("/connexion"); // Redirection vers page connexion
+    logout();
+    setMenuOpen(false);
+    navigate("/connexion");
   };
 
   const styles = {
@@ -25,7 +25,8 @@ const Header = () => {
     menuDesktop: "hidden md:flex items-center gap-3",
     btn: "bg-purple-500 text-white px-4 py-1 rounded-md hover:bg-purple-600 transition",
     btnRed: "bg-purple-500 text-white px-4 py-1 rounded-md hover:bg-red-600 transition",
-    userBox: "flex flex-col md:flex-row items-center gap-2 border px-3 py-1 rounded-md hover:bg-gray-100 transition",
+    userBox:
+      "flex items-center gap-2 border px-3 py-1 rounded-md hover:bg-gray-100 transition cursor-pointer",
     burger: "md:hidden text-2xl",
     mobileMenu: "md:hidden mt-4 flex flex-col gap-3 border-t pt-4",
   };
@@ -33,6 +34,7 @@ const Header = () => {
   return (
     <header className={styles.header}>
       <div className={styles.container}>
+        {/* Logo */}
         <div className={styles.logo}>
           <Link to="/" className="flex items-center" onClick={() => setMenuOpen(false)}>
             <img src={Logo} alt="Logo MonBudget" className="w-8 h-8 mr-2" />
@@ -42,50 +44,74 @@ const Header = () => {
 
         {/* Menu Desktop */}
         <div className={styles.menuDesktop}>
-          {!isLoggedIn && (
+          {!isLoggedIn ? (
             <>
-              <Link to="/inscription" className={styles.btn}>Inscription</Link>
-              <Link to="/connexion" className={styles.btn}>Connexion</Link>
+              <Link to="/inscription" className={styles.btn}>
+                Inscription
+              </Link>
+              <Link to="/connexion" className={styles.btn}>
+                Connexion
+              </Link>
             </>
-          )}
-          {isLoggedIn && (
+          ) : (
             <>
-              <div className={styles.userBox}>
-                <img src={UserIcon} className="w-6 h-6" />
+              {/* USER BOX CLIQUABLE */}
+              <Link to="/updateprofil" className={styles.userBox}>
+                <img
+                  src={UserIcon}
+                  alt="Profil utilisateur"
+                  className="w-6 h-6"
+                />
                 <span>{user.firstName}</span>
-              </div>
-              <button onClick={handleLogout} className={styles.btnRed}>Déconnexion</button>
+              </Link>
+
+              <button onClick={handleLogout} className={styles.btnRed}>
+                Déconnexion
+              </button>
             </>
           )}
         </div>
 
-        {/* Burger menu mobile */}
-        <button className={styles.burger} onClick={() => setMenuOpen(!menuOpen)}>☰</button>
+        {/* Burger Mobile */}
+        <button
+          className={styles.burger}
+          onClick={() => setMenuOpen(!menuOpen)}
+        >
+          ☰
+        </button>
       </div>
 
       {/* Menu Mobile */}
       {menuOpen && (
         <div className={styles.mobileMenu}>
-          {!isLoggedIn && (
+          {!isLoggedIn ? (
             <>
-              <Link to="/inscription" className={styles.btn}>Inscription</Link>
-              <Link to="/connexion" className={styles.btn}>Connexion</Link>
+              <Link to="/inscription" className={styles.btn}>
+                Inscription
+              </Link>
+              <Link to="/connexion" className={styles.btn}>
+                Connexion
+              </Link>
             </>
-          )}
-          {isLoggedIn && (
+          ) : (
             <>
-              <div className={styles.userBox}>
-                <img src={UserIcon} className="w-6 h-6" />
+              {/* USER BOX CLIQUABLE */}
+              <Link
+                to="/updateprofil"
+                className={styles.userBox}
+                onClick={() => setMenuOpen(false)}
+              >
+                <img
+                  src={UserIcon}
+                  alt="Profil utilisateur"
+                  className="w-6 h-6"
+                />
                 <span>{user.firstName}</span>
-                <Link
-                  to="/updateprofil"
-                  className="text-sm text-gray-600 hover:underline"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Modifier Profil
-                </Link>
-              </div>
-              <button onClick={handleLogout} className={styles.btnRed}>Déconnexion</button>
+              </Link>
+
+              <button onClick={handleLogout} className={styles.btnRed}>
+                Déconnexion
+              </button>
             </>
           )}
         </div>
