@@ -70,7 +70,7 @@ if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     try {
       const payload = {
         firstName,
-        birthDate: new Date().toISOString().split("T")[0],
+        birthDate: "" ,
         isActive: true,
         phone: "",
         email,
