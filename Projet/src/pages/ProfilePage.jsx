@@ -1,21 +1,29 @@
-import { useState } from "react";
-import { signupUser } from "../services/api";
-import { useNavigate } from "react-router-dom";
+import { useState, useContext } from 'react';
+import { signupUser } from '../services/api';
+import { useNavigate } from 'react-router-dom';
+import { UserContext } from '../context/UserContext';
+import { useState, useContext } from 'react';
 
 function ProfilePage() {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
+  const [firstName, setFirstName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const navigate = useNavigate();
 
-  // Validation : 8 caractères, 1 majuscule, 1 minuscule, 1 chiffre
-  const validatePassword = (pass) => {
-    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
-    return regex.test(pass);
+  const { login } = useContext(UserContext); //add
+ 
+  const passwordCriteria = {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /\d/.test(password),
   };
+ 
+  const strength = Object.values(passwordCriteria).filter(Boolean).length;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
