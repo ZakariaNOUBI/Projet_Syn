@@ -2,7 +2,6 @@ import { useState, useContext } from 'react';
 import { signupUser } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { UserContext } from '../context/UserContext';
-import { useState, useContext } from 'react';
  
 function ProfilePage() {
   const [firstName, setFirstName] = useState('');
@@ -93,7 +92,7 @@ function ProfilePage() {
       setPassword('');
       setConfirmPassword('');
  
-      setTimeout(() => navigate('/updateProfile'), 1000);
+      setTimeout(() => navigate('/UpdateProfile'), 1000);
     } catch (err) {
       setMessage(err.message || "Erreur lors de l'inscription");
       setIsError(true);

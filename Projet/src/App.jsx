@@ -1,21 +1,84 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { useState } from "react";
-import ProfilePage from "./pages/ProfilePage";
-import UsersListPage from "./pages/UsersListPage";
+import React, { useContext } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 
-function App() {
-  const [usersList, setUsersList] = useState([]);
+import Sidebar from "./Components/Sidebar.jsx";
+import Header from "./Components/Header.jsx";
 
-  const addUserToList = (user) => {
-    setUsersList((prev) => [...prev, user]);
-  };
+import ProfilePage from "./pages/ProfilePage.jsx";
+import HomePage from "./pages/HomePage.jsx";
+import BudgetPage from "./pages/BudgetPage.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
+import UpdateProfile from "./pages/UpdateProfile.jsx";
+import ErrorPage from "./pages/ErrorPage.jsx";
+
+import { UserProvider, UserContext } from "./context/UserContext.jsx";
+
+
+const PrivateRoute = ({ children }) => {
+  const { user } = useContext(UserContext);
+  return user ? children : <Navigate to="/connexion" replace />;
+};
+
+function AppContent() {
+  const { user } = useContext(UserContext);
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/profile" element={<ProfilePage onNewUser={addUserToList} />} />
-      </Routes>
-    </Router>
+    <div className="flex h-screen">
+      {/* Sidebar visible seulement si connecté */}
+      {user && <Sidebar />}
+
+      <main className="flex-1 flex flex-col overflow-auto bg-gray-50">
+        {/* Header toujours visible */}
+        <Header />
+
+        <div className="p-6 flex-1 overflow-auto">
+          <Routes>
+            {/* Routes publiques */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/connexion" element={<LoginPage />} />
+            <Route path="/inscription" element={<ProfilePage />} />
+
+            {/* Routes privées */}
+            <Route
+              path="/budget"
+              element={
+                <PrivateRoute>
+                  <BudgetPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <PrivateRoute>
+                  <Dashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/updateProfil"
+              element={
+                <PrivateRoute>
+                  <UpdateProfile />
+                </PrivateRoute>
+              }
+            />
+
+            {/* Route 404 */}
+            <Route path="*" element={<ErrorPage />} />
+          </Routes>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <UserProvider>
+      <AppContent />
+    </UserProvider>
   );
 }
 
