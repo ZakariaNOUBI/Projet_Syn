@@ -9,12 +9,12 @@ const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
  
-  // 🔒 Vérification sécurisée
+
   const isLoggedIn = user && user.firstName;
  
   const handleLogout = () => {
-    logout();              // vide le user
-    setMenuOpen(false);    // ferme menu mobile
+    logout();             
+    setMenuOpen(false);   
     navigate("/connexion");
   };
  
@@ -35,7 +35,7 @@ const Header = () => {
   return (
     <header className={styles.header}>
       <div className={styles.container}>
-        {/* Logo */}
+    
         <Link
           to="/"
           className="flex items-center"
@@ -45,7 +45,7 @@ const Header = () => {
           <h1 className={styles.title}>MonBudget</h1>
         </Link>
  
-        {/* Desktop */}
+  
         <div className={styles.menuDesktop}>
           {!isLoggedIn ? (
             <>
@@ -58,7 +58,7 @@ const Header = () => {
             </>
           ) : (
             <>
-              <Link to="/updateprofil" className={styles.userBox}>
+              <Link to="/updateProfil" className={styles.userBox}>
                 <img
                   src={UserIcon}
                   alt="Profil utilisateur"
@@ -106,7 +106,9 @@ const Header = () => {
           ) : (
             <>
               <Link
-                to="/updateprofil"
+              to="/updateProfil"
+           
+             
                 className={styles.userBox}
                 onClick={() => setMenuOpen(false)}
               >

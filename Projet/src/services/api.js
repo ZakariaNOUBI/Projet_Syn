@@ -172,7 +172,8 @@ export const updateBankingDetails = async (userId, data) => {
   }
 };
  
-//adding 27.03 delete working address
+
+
  
 export async function deleteAddress(userId, addressType) {
   const response = await fetch(`${API_URL}/users/${userId}/addresses/${addressType}`, {

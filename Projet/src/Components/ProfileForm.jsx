@@ -6,9 +6,9 @@ function ProfilePage() {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState(""); // message succès / erreur
+  const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
-  const [userData, setUserData] = useState(null); // ici on stocke le profil
+  const [userData, setUserData] = useState(null); 
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -17,18 +17,18 @@ function ProfilePage() {
     setIsError(false);
 
     try {
-      // 1️⃣ Inscription
+
       const data = await signupUser(firstName, email, password);
 
-      // 2️⃣ Stocker token et userId
+   
       localStorage.setItem("token", data.token);
       localStorage.setItem("userId", data.user.id);
 
-      // 3️⃣ Afficher message succès
+  
       setMessage("Compte créé avec succès !");
       setIsError(false);
 
-      // 4️⃣ Récupérer le profil directement
+   
       const profile = await getProfile();
       setUserData(profile);
 
@@ -91,7 +91,7 @@ function ProfilePage() {
           </button>
         </form>
 
-        {/* Affichage des infos de l’utilisateur */}
+     
         {userData && (
           <div className="mt-6 p-4 border border-gray-200 rounded bg-gray-50">
             <h2 className="font-bold mb-2">Profil créé :</h2>

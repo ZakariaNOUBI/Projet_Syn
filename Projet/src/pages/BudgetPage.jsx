@@ -139,11 +139,11 @@ const handleAddRevenue = async () => {
 
 const handleAddExpense = async () => {
   if (!userId) {
-    showToast("Utilisateur non défini ❌");
+    showlesToast("Utilisateur non défini ❌");
     return;
   }
 
-  // Validation
+
   const errors = validate(newExpense, "expense");
   if (Object.keys(errors).length > 0) {
     setErrorsExpense(errors);
@@ -151,10 +151,10 @@ const handleAddExpense = async () => {
   }
   setErrorsExpense({});
 
-  // Définir les dates par défaut selon récurrence
+
   const { startDate, endDate } = getDefaultDates(newExpense.isRecurring);
 
-  // Création de la transaction
+
   const transaction = {
     ...newExpense,
     amount: Number(newExpense.amount),
@@ -162,7 +162,7 @@ const handleAddExpense = async () => {
     userId,
     startDate,
     endDate,
-    frequency: newExpense.frequency || 1, // par défaut 1 si récurrent
+    frequency: newExpense.frequency || 1, 
   };
 
   try {
