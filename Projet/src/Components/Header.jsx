@@ -58,7 +58,7 @@ const Header = () => {
             </>
           ) : (
             <>
-              <Link to="/updateprofil" className={styles.userBox}>
+              <Link to="/updateProfil" className={styles.userBox}>
                 <img
                   src={UserIcon}
                   alt="Profil utilisateur"
