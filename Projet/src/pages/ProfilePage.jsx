@@ -92,7 +92,7 @@ function ProfilePage() {
       setPassword('');
       setConfirmPassword('');
  
-      setTimeout(() => navigate('/UpdateProfile'), 1000);
+      setTimeout(() => navigate('/updateProfil'), 1000);
     } catch (err) {
       setMessage(err.message || "Erreur lors de l'inscription");
       setIsError(true);
