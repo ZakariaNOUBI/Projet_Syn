@@ -14,7 +14,7 @@ const Header = () => {
  
   const handleLogout = () => {
     logout();             
-    setMenuOpen(false);    
+    setMenuOpen(false);   
     navigate("/connexion");
   };
  
@@ -45,7 +45,7 @@ const Header = () => {
           <h1 className={styles.title}>MonBudget</h1>
         </Link>
  
-    
+  
         <div className={styles.menuDesktop}>
           {!isLoggedIn ? (
             <>
@@ -74,7 +74,7 @@ const Header = () => {
           )}
         </div>
  
-    
+        {/* Burger */}
         <button
           className={styles.burger}
           onClick={() => setMenuOpen(!menuOpen)}
@@ -83,7 +83,7 @@ const Header = () => {
         </button>
       </div>
  
-  
+      {/* Mobile */}
       {menuOpen && (
         <div className={styles.mobileMenu}>
           {!isLoggedIn ? (
@@ -106,7 +106,9 @@ const Header = () => {
           ) : (
             <>
               <Link
-                to="/updateProfil"
+              to="/updateProfil"
+           
+             
                 className={styles.userBox}
                 onClick={() => setMenuOpen(false)}
               >
