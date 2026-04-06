@@ -25,21 +25,21 @@ function AppContent() {
 
   return (
     <div className="flex h-screen">
-      {/* Sidebar visible seulement si connecté */}
+
       {user && <Sidebar />}
 
       <main className="flex-1 flex flex-col overflow-auto bg-gray-50">
-        {/* Header toujours visible */}
+  
         <Header />
 
         <div className="p-6 flex-1 overflow-auto">
           <Routes>
-            {/* Routes publiques */}
+      
             <Route path="/" element={<HomePage />} />
             <Route path="/connexion" element={<LoginPage />} />
             <Route path="/inscription" element={<ProfilePage />} />
 
-            {/* Routes privées */}
+     
             <Route
               path="/budget"
               element={
@@ -65,7 +65,7 @@ function AppContent() {
               }
             />
 
-            {/* Route 404 */}
+     
             <Route path="*" element={<ErrorPage />} />
           </Routes>
         </div>

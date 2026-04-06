@@ -1,8 +1,8 @@
 import { useState, useContext, useEffect } from 'react';
 import { UserContext } from '../context/UserContext';
 import { getUser, updateUser, getAddresses, updateAddress, getSchoolDetails, updateSchoolDetails, getBankingDetails, updateBankingDetails, deleteAddress } from '../services/api';
+ 
 
-// Composants réutilisables du formulaire, label et champ générique
 function FieldLabel({ text, required = false, htmlFor }) {
   return (
     <label htmlFor={htmlFor} className="block text-base md:text-lg font-medium mb-1">
@@ -10,7 +10,7 @@ function FieldLabel({ text, required = false, htmlFor }) {
     </label>
   );
 }
-
+ 
 function Field({ id, prefix = '', label, required = false, value, onChange, type = 'text', isEditing, profileCompleted }) {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === 'password';
@@ -57,12 +57,12 @@ function Field({ id, prefix = '', label, required = false, value, onChange, type
     </div>
   );
 }
-
+ 
 // Champs d'adresse réutilisables pour l'adresse personnelle et au travail
 const PROVINCES = ['QC', 'ON', 'NL', 'NS', 'PE', 'NB', 'MB', 'SK', 'AB', 'BC', 'YT', 'NT', 'NU'];
 function AddressFields({ address, onChange, isEditing, profileCompleted, prefix }) {
   const update = (field, value) => onChange({ ...address, [field]: value });
-
+ 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
       <Field
@@ -77,7 +77,7 @@ function AddressFields({ address, onChange, isEditing, profileCompleted, prefix 
       />
       <Field prefix={prefix} id="street" label="Rue" required value={address.streetName} onChange={(value) => update('streetName', value)} isEditing={isEditing} profileCompleted={profileCompleted} />
       <Field prefix={prefix} id="city" label="Ville" required value={address.city} onChange={(value) => update('city', value)} isEditing={isEditing} profileCompleted={profileCompleted} />
-
+ 
       <div className="mb-4">
         <FieldLabel htmlFor={`${prefix}-province`} text="Province" required={!profileCompleted || isEditing} />
         {isEditing ? (
@@ -86,7 +86,7 @@ function AddressFields({ address, onChange, isEditing, profileCompleted, prefix 
             name={`${prefix}-province`}
             value={address.province}
             onChange={(e) => update('province', e.target.value)}
-            className="w-full border-2 border-gray-200 px-3 py-2 rounded-lg text-sm md:text-base pr-10 hover:border-2 hover:border-purple-400 focus:ring-2 focus:ring-purple-500 focus:outline-none">
+            className="w-full border-2 border-gray-200 px-3 py-2 rounded-lg text-sm md:text-base pr-10 hover:border-purple-400 focus:ring-2 focus:ring-purple-500 focus:outline-none">
             <option value="">Sélectionner...</option>
             {PROVINCES.map((province) => (
               <option key={province} value={province}>
@@ -119,7 +119,7 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
     </div>
   );
 }
-
+ 
 const EMPTY_PERSONAL_INFO = {
   firstName: '',
   lastName: '',
@@ -129,7 +129,7 @@ const EMPTY_PERSONAL_INFO = {
   birthDate: '',
   isActive: true,
 };
-
+ 
 const EMPTY_PERSONAL_ADDRESS = {
   streetNumber: '',
   streetName: '',
@@ -138,7 +138,7 @@ const EMPTY_PERSONAL_ADDRESS = {
   country: 'CA',
   type: 'PERSONAL',
 };
-
+ 
 const EMPTY_WORK_ADDRESS = {
   streetNumber: '',
   streetName: '',
@@ -147,97 +147,98 @@ const EMPTY_WORK_ADDRESS = {
   country: 'CA',
   type: 'WORK',
 };
-
+ 
 const EMPTY_SCHOOL_INFO = {
   schoolName: '',
   fieldOfStudy: '',
   startDate: '',
   projectedEndDate: '',
 };
-
+ 
 const EMPTY_BANKING_INFO = {
   institutionName: '',
   accountInfo: '',
   loanInfo: '',
   other: '',
 };
-
+ 
 const EMPTY_SECTION_ERRORS = {
   personalAddress: '',
   workAddress: '',
   school: '',
   banking: '',
 };
-
+ 
 function UpdateProfile() {
   const { user } = useContext(UserContext);
   const userId = user?.id;
-
+ 
   const [isEditing, setIsEditing] = useState(false);
   const [profileCompleted, setProfileCompleted] = useState(false);
   const [error, setError] = useState('');
   const [showWorkAddress, setShowWorkAddress] = useState(false);
-
+ 
   const [workAddressExistsInBackend, setWorkAddressExistsInBackend] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-
+  const [successMessage, setSuccessMessage] = useState('');
+ 
   const [errors, setErrors] = useState({
     firstName: '',
     email: '',
     password: '',
   });
-
+ 
   const [personalInfo, setPersonalInfo] = useState(EMPTY_PERSONAL_INFO);
-
+ 
   const [personalAddress, setPersonalAddress] = useState(EMPTY_PERSONAL_ADDRESS);
-
+ 
   const [workAddress, setWorkAddress] = useState(EMPTY_WORK_ADDRESS);
-
+ 
   const [schoolInfo, setSchoolInfo] = useState(EMPTY_SCHOOL_INFO);
   const [bankingInfo, setBankingInfo] = useState(EMPTY_BANKING_INFO);
   const [sectionErrors, setSectionErrors] = useState(EMPTY_SECTION_ERRORS);
-
+ 
   const passwordCriteria = {
     length: personalInfo.password.length >= 8,
     uppercase: /[A-Z]/.test(personalInfo.password),
     lowercase: /[a-z]/.test(personalInfo.password),
     number: /\d/.test(personalInfo.password),
   };
-
+ 
   const hasWorkAddressData = !!workAddress.streetNumber || !!workAddress.streetName || !!workAddress.city || !!workAddress.province;
-
+ 
   const toISODate = (dateString) => {
     if (!dateString) return null;
     return new Date(dateString).toISOString();
   };
-
+ 
   const formatDateForInput = (isoString) => {
     if (!isoString) return '';
     return isoString.split('T')[0];
   };
-
+ 
   const isAddressComplete = (address) => {
     return address.streetNumber.trim() !== '' && address.streetName.trim() !== '' && address.city.trim() !== '' && address.province.trim() !== '';
   };
-
+ 
   const isSchoolComplete = (school) => {
     return school.schoolName.trim() !== '' && school.fieldOfStudy.trim() !== '' && school.startDate.trim() !== '';
   };
-
+ 
   const isBankingComplete = (banking) => {
     return banking.institutionName.trim() !== '' && banking.accountInfo.trim() !== '';
   };
+ 
 
-  // Validation des champs obligatoires avant sauvegarde
   const validateForm = () => {
     const newErrors = {
       firstName: '',
       email: '',
       password: '',
     };
-
+ 
     let isValid = true;
-
+ 
     if (!personalInfo.firstName.trim()) {
       newErrors.firstName = 'Le prénom est requis.';
       isValid = false;
@@ -245,7 +246,7 @@ function UpdateProfile() {
       newErrors.firstName = 'Le prénom doit contenir au moins 3 caractères.';
       isValid = false;
     }
-
+ 
     if (!personalInfo.email.trim()) {
       newErrors.email = 'Le courriel est requis.';
       isValid = false;
@@ -253,47 +254,45 @@ function UpdateProfile() {
       newErrors.email = 'Veuillez entrer un courriel valide.';
       isValid = false;
     }
-
+ 
     if (personalInfo.password.trim() !== '') {
       const isPasswordValid = passwordCriteria.length && passwordCriteria.uppercase && passwordCriteria.lowercase && passwordCriteria.number;
-
+ 
       if (!isPasswordValid) {
         newErrors.password = 'Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule et un chiffre.';
         isValid = false;
       }
     }
-
+ 
     setErrors(newErrors);
     return isValid;
   };
-
+ 
   // Charge les données du profil depuis le backend
   async function loadProfileData() {
     try {
       const userData = await getUser(userId);
-
+ 
       if (userData) {
-        const today = new Date().toISOString().split('T')[0];
-        const birthDateValue = userData.birthDate === today ? '' : userData.birthDate ? formatDateForInput(userData.birthDate) : '';
         setPersonalInfo({
           firstName: userData.firstName || '',
           lastName: userData.lastName || '',
           email: userData.email || '',
           password: '',
           phone: userData.phone || '',
-          birthDate: birthDateValue,
+          birthDate: formatDateForInput(userData.birthDate),
           isActive: userData.isActive ?? true,
         });
       }
-
+ 
       const [addressesResult, schoolResult, bankingResult] = await Promise.allSettled([getAddresses(userId), getSchoolDetails(userId), getBankingDetails(userId)]);
-
+ 
       if (addressesResult.status === 'fulfilled' && Array.isArray(addressesResult.value)) {
         const addresses = addressesResult.value;
-
+ 
         const personal = addresses.find((address) => address.type === 'PERSONAL');
         const work = addresses.find((address) => address.type === 'WORK');
-
+ 
         if (personal) {
           setPersonalAddress({
             ...EMPTY_PERSONAL_ADDRESS,
@@ -306,7 +305,7 @@ function UpdateProfile() {
         } else {
           setPersonalAddress(EMPTY_PERSONAL_ADDRESS);
         }
-
+ 
         if (work) {
           setWorkAddress({
             ...EMPTY_WORK_ADDRESS,
@@ -316,7 +315,7 @@ function UpdateProfile() {
             province: work.province || '',
             country: work.country || 'CA',
           });
-
+ 
           setWorkAddressExistsInBackend(true);
           setShowWorkAddress(true);
         } else {
@@ -334,10 +333,10 @@ function UpdateProfile() {
           console.error('Erreur récupération adresses :', addressesResult.reason);
         }
       }
-
+ 
       if (schoolResult.status === 'fulfilled' && schoolResult.value) {
         const schoolData = schoolResult.value;
-
+ 
         setSchoolInfo({
           schoolName: schoolData.schoolName || '',
           fieldOfStudy: schoolData.fieldOfStudy || '',
@@ -353,7 +352,7 @@ function UpdateProfile() {
       }
       if (bankingResult.status === 'fulfilled' && bankingResult.value) {
         const bankingData = bankingResult.value;
-
+ 
         setBankingInfo({
           institutionName: bankingData.institutionName || '',
           accountInfo: bankingData.accountInfo || '',
@@ -367,59 +366,58 @@ function UpdateProfile() {
           console.error('Erreur récupération bancaire :', bankingResult.reason);
         }
       }
-
+ 
       const isCompleted = !!userData?.firstName && !!userData?.email;
       setProfileCompleted(isCompleted);
-      localStorage.setItem(`profileCompleted_${userId}`, String(isCompleted));
     } catch (error) {
       console.error('Erreur chargement profil :', error);
       setError('Erreur lors du chargement du profil.');
     }
   }
-
+ 
   useEffect(() => {
     if (userId) {
       loadProfileData();
     }
   }, [userId]);
-
+ 
   const handleSave = async () => {
     if (!userId) {
       setError('Utilisateur introuvable.');
       return;
     }
-
+ 
     const isFormValid = validateForm();
     const newSectionErrors = { ...EMPTY_SECTION_ERRORS };
-
+ 
     let areSectionsValid = true;
-
+ 
     if (!isAddressComplete(personalAddress)) {
       newSectionErrors.personalAddress = "Veuillez remplir tous les champs requis de l'adresse personnelle.";
       areSectionsValid = false;
     }
-
+ 
     if (showWorkAddress && hasWorkAddressData && !isAddressComplete(workAddress)) {
       newSectionErrors.workAddress = "Veuillez remplir tous les champs requis de l'adresse au travail.";
       areSectionsValid = false;
     }
-
+ 
     if (!isSchoolComplete(schoolInfo)) {
       newSectionErrors.school = 'Veuillez remplir tous les champs requis des renseignements scolaires.';
       areSectionsValid = false;
     }
-
+ 
     if (!isBankingComplete(bankingInfo)) {
       newSectionErrors.banking = 'Veuillez remplir tous les champs requis des renseignements bancaires.';
       areSectionsValid = false;
     }
-
+ 
     setSectionErrors(newSectionErrors);
-
+ 
     if (!isFormValid || !areSectionsValid) {
       return;
     }
-
+ 
     try {
       await updateUser(userId, {
         firstName: personalInfo.firstName,
@@ -430,67 +428,68 @@ function UpdateProfile() {
         birthDate: personalInfo.birthDate ? toISODate(personalInfo.birthDate) : null,
         isActive: personalInfo.isActive,
       });
-
+ 
       await updateAddress(userId, {
         ...personalAddress,
       });
-
+ 
       if (showWorkAddress && hasWorkAddressData) {
         await updateAddress(userId, { ...workAddress });
       }
-
+ 
       await updateSchoolDetails(userId, {
         schoolName: schoolInfo.schoolName,
         fieldOfStudy: schoolInfo.fieldOfStudy,
         startDate: toISODate(schoolInfo.startDate),
         projectedEndDate: schoolInfo.projectedEndDate ? toISODate(schoolInfo.projectedEndDate) : null,
       });
-
+ 
       await updateBankingDetails(userId, {
         institutionName: bankingInfo.institutionName,
         accountInfo: bankingInfo.accountInfo,
         loanInfo: bankingInfo.loanInfo,
         other: bankingInfo.other,
       });
-      localStorage.setItem(`profileCompleted_${userId}`, 'true');
       setIsEditing(false);
-
+ 
       try {
         await loadProfileData();
       } catch (reloadError) {
         console.error('Erreur rechargement profil :', reloadError);
       }
-
+ 
       setError('');
+      setSuccessMessage('Votre profil a été mis à jour avec succès!');
+      setTimeout(() => setSuccessMessage(''), 4000);
     } catch (error) {
       console.error('Erreur sauvegarde profil :', error);
       setError('Une erreur est survenue lors de la sauvegarde.');
     }
   };
-
+ 
   const handleCancel = async () => {
     setErrors({ firstName: '', email: '', password: '' });
     setSectionErrors(EMPTY_SECTION_ERRORS);
     setError('');
-
+ 
     if (userId) {
       await loadProfileData();
     }
-
+ 
     setIsEditing(false);
   };
-
+ 
   const handleDeleteWorkAddress = async () => {
     if (!userId) return;
-
+ 
     try {
       if (workAddressExistsInBackend) {
         await deleteAddress(userId, 'WORK');
         setWorkAddressExistsInBackend(false);
       }
-
+ 
       setWorkAddress(EMPTY_WORK_ADDRESS);
-
+ 
       setShowWorkAddress(false);
       setSectionErrors((prev) => ({ ...prev, workAddress: '' }));
       setError('');
@@ -501,7 +500,7 @@ function UpdateProfile() {
       setShowDeleteModal(false);
     }
   };
-
+ 
   return (
     <main className="p-4 md:p-6 bg-gray-50 min-h-screen">
       {showDeleteModal && (
@@ -509,7 +508,7 @@ function UpdateProfile() {
       )}
       <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-2">
         <h1 className="text-2xl md:text-4xl font-bold text-violet-900">Détail du profil</h1>
-
+ 
         {!isEditing ? (
           <button onClick={() => setIsEditing(true)} className="bg-purple-600 text-white px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base rounded shadow hover:bg-purple-700 self-start">
             Mettre à jour
@@ -525,18 +524,18 @@ function UpdateProfile() {
           </div>
         )}
       </div>
-
+ 
       {error && <p className="text-red-500 text-sm md:text-base mb-4">{error}</p>}
       {successMessage && (
         <div className="flex justify-center mb-4">
           <div className="text-green-700 font-bold text-sm md:text-base">{successMessage}</div>
         </div>
       )}
-
+ 
       {/* Renseignements personnels*/}
       <section className="bg-white shadow-md border border-gray-300 rounded p-6 mb-6">
         <h2 className="text-xl md:text-2xl font-bold mb-6">Renseignements personnels</h2>
-
+ 
         {(isEditing || !profileCompleted) && (
           <p className="text-sm md:text-base text-gray-700 mb-4">
             Les champs marqués d'un <span className="text-red-500 font-bold">*</span> sont obligatoires.
@@ -554,7 +553,7 @@ function UpdateProfile() {
               profileCompleted={profileCompleted}
               onChange={(newValue) => setPersonalInfo({ ...personalInfo, firstName: newValue })}
             />
-
+ 
             {errors.firstName && <p className="text-red-500 text-sm md:text-base mt-1">{errors.firstName}</p>}
           </div>
           <div>
@@ -571,7 +570,7 @@ function UpdateProfile() {
               profileCompleted={profileCompleted}
               onChange={(newValue) => setPersonalInfo({ ...personalInfo, email: newValue })}
             />
-
+ 
             {errors.email && <p className="text-red-500 text-sm md:text-base mt-1">{errors.email}</p>}
           </div>
           <div>
@@ -599,21 +598,21 @@ function UpdateProfile() {
               profileCompleted={profileCompleted}
               onChange={(newValue) => setPersonalInfo({ ...personalInfo, password: newValue })}
             />
-
+ 
             {errors.password && <p className="text-red-500 text-sm md:text-base mt-1">{errors.password}</p>}
           </div>
         </div>
       </section>
-
+ 
       {/* Adresses*/}
       <section className="bg-white shadow-md border border-gray-300 rounded p-6 mb-6">
         <h2 className="text-xl md:text-2xl font-bold mb-6">Adresses</h2>
-
+ 
         <p className="text-lg md:text-xl font-semibold text-purple-700 mb-3">Adresse personnelle</p>
         {sectionErrors.personalAddress && <p className="text-red-500 text-sm md:text-base mb-3">{sectionErrors.personalAddress}</p>}
-
+ 
         <AddressFields prefix="personal" address={personalAddress} onChange={setPersonalAddress} isEditing={isEditing} profileCompleted={profileCompleted} />
-
+ 
         {isEditing && (
           <div className="mb-4 mt-6">
             <div className="flex items-center gap-2">
@@ -633,15 +632,14 @@ function UpdateProfile() {
                 Adresse au travail
               </label>
             </div>
-
+ 
             <p className="ml-6 mt-1 text-sm md:text-base text-gray-600">À remplir uniquement si applicable</p>
           </div>
         )}
-
+ 
         {isEditing && showWorkAddress && (
           <>
             {sectionErrors.workAddress && <p className="text-red-500 text-sm md:text-base mb-3">{sectionErrors.workAddress}</p>}
-            {/*  Adresse au travail → IDs: work-street, work-city … */}
             <AddressFields prefix="work" address={workAddress} onChange={setWorkAddress} isEditing={isEditing} profileCompleted={profileCompleted} />
             <div className="flex justify-end">
               <button
@@ -653,15 +651,15 @@ function UpdateProfile() {
             </div>
           </>
         )}
-
+ 
         {!isEditing && workAddressExistsInBackend && (
           <>
             <p className="text-base md:text-lg font-semibold text-purple-700 mb-3">Adresse au travail</p>
-            <AddressFields prefix="work" address={workAddress} onChange={() => {}} isEditing={false} />
+            <AddressFields prefix="work" address={workAddress} onChange={() => {}} isEditing={false} profileCompleted={profileCompleted} />
           </>
         )}
       </section>
-
+ 
       {/* Établissement scolaire*/}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <section className="bg-white shadow-md border border-gray-300 rounded p-6">
@@ -680,7 +678,7 @@ function UpdateProfile() {
                 onChange={(newValue) => setSchoolInfo({ ...schoolInfo, schoolName: newValue })}
               />
             </div>
-
+ 
             <div>
               <Field
                 prefix="school"
@@ -693,7 +691,7 @@ function UpdateProfile() {
                 onChange={(newValue) => setSchoolInfo({ ...schoolInfo, fieldOfStudy: newValue })}
               />
             </div>
-
+ 
             <div>
               <Field
                 prefix="school"
@@ -707,7 +705,7 @@ function UpdateProfile() {
                 onChange={(newValue) => setSchoolInfo({ ...schoolInfo, startDate: newValue })}
               />
             </div>
-
+ 
             <div>
               <Field
                 prefix="school"
@@ -721,7 +719,7 @@ function UpdateProfile() {
             </div>
           </div>
         </section>
-
+ 
         {/* Renseignements bancaires */}
         <section className="bg-white shadow-md border border-gray-300 rounded p-6">
           <h2 className="text-xl md:text-2xl font-bold mb-6">Renseignements bancaires</h2>
@@ -737,7 +735,7 @@ function UpdateProfile() {
               profileCompleted={profileCompleted}
               onChange={(newValue) => setBankingInfo({ ...bankingInfo, institutionName: newValue })}
             />
-
+ 
             <div>
               <Field
                 prefix="banking"
@@ -750,7 +748,7 @@ function UpdateProfile() {
                 onChange={(newValue) => setBankingInfo({ ...bankingInfo, accountInfo: newValue })}
               />
             </div>
-
+ 
             <div>
               <Field
                 prefix="banking"
@@ -761,7 +759,7 @@ function UpdateProfile() {
                 onChange={(newValue) => setBankingInfo({ ...bankingInfo, loanInfo: newValue })}
               />
             </div>
-
+ 
             <div>
               <Field prefix="banking" id="other" label="Autre" value={bankingInfo.other} isEditing={isEditing} onChange={(newValue) => setBankingInfo({ ...bankingInfo, other: newValue })} />
             </div>
@@ -771,5 +769,6 @@ function UpdateProfile() {
     </main>
   );
 }
-
+ 
 export default UpdateProfile;
+ 

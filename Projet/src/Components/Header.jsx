@@ -3,20 +3,21 @@ import { Link, useNavigate } from "react-router-dom";
 import Logo from "../assets/icons/logo.png";
 import UserIcon from "../assets/icons/user (1).png";
 import { UserContext } from "../context/UserContext";
-
+ 
 const Header = () => {
   const { user, logout } = useContext(UserContext);
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
+ 
 
-  const isLoggedIn = !!user;
-
+  const isLoggedIn = user && user.firstName;
+ 
   const handleLogout = () => {
-    logout();
-    setMenuOpen(false);
+    logout();             
+    setMenuOpen(false);    
     navigate("/connexion");
   };
-
+ 
   const styles = {
     header: "bg-white shadow-md px-6 py-4",
     container: "flex items-center justify-between",
@@ -24,25 +25,27 @@ const Header = () => {
     title: "text-xl font-bold text-gray-800",
     menuDesktop: "hidden md:flex items-center gap-3",
     btn: "bg-purple-500 text-white px-4 py-1 rounded-md hover:bg-purple-600 transition",
-    btnRed: "bg-purple-500 text-white px-4 py-1 rounded-md hover:bg-red-600 transition",
+    btnRed: "bg-red-500 text-white px-4 py-1 rounded-md hover:bg-red-600 transition",
     userBox:
       "flex items-center gap-2 border px-3 py-1 rounded-md hover:bg-gray-100 transition cursor-pointer",
     burger: "md:hidden text-2xl",
     mobileMenu: "md:hidden mt-4 flex flex-col gap-3 border-t pt-4",
   };
-
+ 
   return (
     <header className={styles.header}>
       <div className={styles.container}>
-        {/* Logo */}
-        <div className={styles.logo}>
-          <Link to="/" className="flex items-center" onClick={() => setMenuOpen(false)}>
-            <img src={Logo} alt="Logo MonBudget" className="w-8 h-8 mr-2" />
-            <h1 className={styles.title}>MonBudget</h1>
-          </Link>
-        </div>
-
-        {/* Menu Desktop */}
+    
+        <Link
+          to="/"
+          className="flex items-center"
+          onClick={() => setMenuOpen(false)}
+        >
+          <img src={Logo} alt="Logo MonBudget" className="w-8 h-8 mr-2" />
+          <h1 className={styles.title}>MonBudget</h1>
+        </Link>
+ 
+    
         <div className={styles.menuDesktop}>
           {!isLoggedIn ? (
             <>
@@ -55,7 +58,6 @@ const Header = () => {
             </>
           ) : (
             <>
-              {/* USER BOX CLIQUABLE */}
               <Link to="/updateprofil" className={styles.userBox}>
                 <img
                   src={UserIcon}
@@ -64,15 +66,15 @@ const Header = () => {
                 />
                 <span>{user.firstName}</span>
               </Link>
-
+ 
               <button onClick={handleLogout} className={styles.btnRed}>
                 Déconnexion
               </button>
             </>
           )}
         </div>
-
-        {/* Burger Mobile */}
+ 
+    
         <button
           className={styles.burger}
           onClick={() => setMenuOpen(!menuOpen)}
@@ -80,24 +82,31 @@ const Header = () => {
           ☰
         </button>
       </div>
-
-      {/* Menu Mobile */}
+ 
+  
       {menuOpen && (
         <div className={styles.mobileMenu}>
           {!isLoggedIn ? (
             <>
-              <Link to="/inscription" className={styles.btn}>
+              <Link
+                to="/inscription"
+                className={styles.btn}
+                onClick={() => setMenuOpen(false)}
+              >
                 Inscription
               </Link>
-              <Link to="/connexion" className={styles.btn}>
+              <Link
+                to="/connexion"
+                className={styles.btn}
+                onClick={() => setMenuOpen(false)}
+              >
                 Connexion
               </Link>
             </>
           ) : (
             <>
-              {/* USER BOX CLIQUABLE */}
               <Link
-                to="/updateprofil"
+                to="/updateProfil"
                 className={styles.userBox}
                 onClick={() => setMenuOpen(false)}
               >
@@ -108,7 +117,7 @@ const Header = () => {
                 />
                 <span>{user.firstName}</span>
               </Link>
-
+ 
               <button onClick={handleLogout} className={styles.btnRed}>
                 Déconnexion
               </button>
@@ -119,5 +128,5 @@ const Header = () => {
     </header>
   );
 };
-
+ 
 export default Header;
