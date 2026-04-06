@@ -14,6 +14,9 @@ function FieldLabel({ text, required = false, htmlFor }) {
 function Field({ id, prefix = '', label, required = false, value, onChange, type = 'text', isEditing, profileCompleted }) {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === 'password';
+  const isPhone = id === 'phone';
+  const isAccountInfo = id === 'accountInfo';
+  const isLoanInfo = id === 'loanInfo';
   const fieldId = prefix ? `${prefix}-${id}` : id;
   return (
     <div className="mb-4">
@@ -25,7 +28,7 @@ function Field({ id, prefix = '', label, required = false, value, onChange, type
             name={fieldId}
             type={isPassword ? (showPassword ? 'text' : 'password') : type}
             value={value}
-            placeholder={isPassword ? 'Nouveau mot de passe' : ''}
+            placeholder={isPassword ? 'Nouveau mot de passe' : isAccountInfo ? 'Ex. : 815-12345-1234567' : isLoanInfo ? 'Ex. : 12345-678' : ''}
             onChange={(e) => onChange(e.target.value)}
             className="w-full border-2 border-gray-200 px-3 py-2 rounded-lg text-sm md:text-base pr-10 hover:border-purple-400 focus:ring-2 focus:ring-purple-500 focus:outline-none"
           />
@@ -71,12 +74,30 @@ function AddressFields({ address, onChange, isEditing, profileCompleted, prefix 
         label="Numéro civique"
         required
         value={address.streetNumber}
-        onChange={(value) => update('streetNumber', value)}
+        onChange={(value) => update('streetNumber', formatStreetNumber(value))}
         isEditing={isEditing}
         profileCompleted={profileCompleted}
       />
-      <Field prefix={prefix} id="street" label="Rue" required value={address.streetName} onChange={(value) => update('streetName', value)} isEditing={isEditing} profileCompleted={profileCompleted} />
-      <Field prefix={prefix} id="city" label="Ville" required value={address.city} onChange={(value) => update('city', value)} isEditing={isEditing} profileCompleted={profileCompleted} />
+      <Field
+        prefix={prefix}
+        id="street"
+        label="Rue"
+        required
+        value={address.streetName}
+        onChange={(value) => update('streetName', formatStreetName(value))}
+        isEditing={isEditing}
+        profileCompleted={profileCompleted}
+      />
+      <Field
+        prefix={prefix}
+        id="city"
+        label="Ville"
+        required
+        value={address.city}
+        onChange={(value) => update('city', formatCityName(value))}
+        isEditing={isEditing}
+        profileCompleted={profileCompleted}
+      />
 
       <div className="mb-4">
         <FieldLabel htmlFor={`${prefix}-province`} text="Province" required={!profileCompleted || isEditing} />
@@ -86,7 +107,7 @@ function AddressFields({ address, onChange, isEditing, profileCompleted, prefix 
             name={`${prefix}-province`}
             value={address.province}
             onChange={(e) => update('province', e.target.value)}
-            className="w-full border-2 border-gray-200 px-3 py-2 rounded-lg text-sm md:text-base pr-10 hover:border-2 hover:border-purple-400 focus:ring-2 focus:ring-purple-500 focus:outline-none">
+            className="w-full border-2 border-gray-200 px-3 py-2 rounded-lg text-sm md:text-base pr-10 hover:border-purple-400 focus:ring-2 focus:ring-purple-500 focus:outline-none">
             <option value="">Sélectionner...</option>
             {PROVINCES.map((province) => (
               <option key={province} value={province}>
@@ -169,6 +190,42 @@ const EMPTY_SECTION_ERRORS = {
   banking: '',
 };
 
+const capitalizeWords = (value) => value.toLowerCase().replace(/(^\s*\w|[\s-]\w)/g, (char) => char.toUpperCase());
+const formatPersonName = (value) => capitalizeWords(value.replace(/[^a-zA-ZÀ-ÿ\s'-]/g, ''));
+const formatPersonPhone = (value) => {
+  const digits = cleanPhone(value);
+
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+
+  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+};
+const cleanPhone = (value) => {
+  let digits = (value || '').replace(/[^0-9]/g, '');
+  if (digits.length === 11 && digits.startsWith('1')) {
+    digits = digits.slice(1);
+  }
+  return digits.slice(0, 10);
+};
+const formatStreetName = (value) => {
+  const withSpace = value.replace(/(\d+)(st|nd|rd|th|ère|ere|re|e)([a-zA-ZÀ-ÿ])/gi, '$1$2 $3').replace(/(\d+)(?!st|nd|rd|th|ère|ere|re|e)([a-zA-ZÀ-ÿ]{2,})/gi, '$1 $2');
+  return capitalizeWords(withSpace.replace(/[^a-zA-ZÀ-ÿ0-9\s.'-]/g, ''));
+};
+const formatCityName = (value) => capitalizeWords(value.replace(/[^a-zA-ZÀ-ÿ\s'-.]/g, ''));
+const formatStreetNumber = (value) => {
+  const cleaned = value.replace(/[^0-9a-zA-Z\-\/\s]/g, '').toUpperCase();
+  return /^[0-9]/.test(cleaned) || cleaned === '' ? cleaned : value.slice(0, -1);
+};
+const formatSchoolName = (value) => capitalizeWords(value.replace(/[^a-zA-ZÀ-ÿ0-9\s\-'.&]/g, ''));
+const formatFieldOfStudy = (value) => capitalizeWords(value.replace(/[^a-zA-ZÀ-ÿ0-9\s\-'./]/g, ''));
+const formatBankingName = (value) => capitalizeWords(value.replace(/[^a-zA-ZÀ-ÿ0-9\s\-'.&]/g, ''));
+const formatAccountNumber = (value) => value.replace(/[^0-9\-]/g, '');
+const formatLoanInfo = (value) => value.replace(/[^0-9\-]/g, '');
+const formatOtherInfo = (value) => value.replace(/[^a-zA-ZÀ-ÿ0-9\s\-'.,:/()#]/g, '');
+
+const isValidPhone = (value) => cleanPhone(value).length === 10;
+
+// Charge les données du profil depuis le backend
 function UpdateProfile() {
   const { user } = useContext(UserContext);
   const userId = user?.id;
@@ -180,11 +237,13 @@ function UpdateProfile() {
 
   const [workAddressExistsInBackend, setWorkAddressExistsInBackend] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const [errors, setErrors] = useState({
     firstName: '',
     email: '',
     password: '',
+    phone: '',
   });
 
   const [personalInfo, setPersonalInfo] = useState(EMPTY_PERSONAL_INFO);
@@ -234,6 +293,7 @@ function UpdateProfile() {
       firstName: '',
       email: '',
       password: '',
+      phone: '',
     };
 
     let isValid = true;
@@ -251,6 +311,11 @@ function UpdateProfile() {
       isValid = false;
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personalInfo.email)) {
       newErrors.email = 'Veuillez entrer un courriel valide.';
+      isValid = false;
+    }
+
+    if (personalInfo.phone.trim() !== '' && !isValidPhone(personalInfo.phone)) {
+      newErrors.phone = 'Veuillez entrer un numéro de téléphone valide.';
       isValid = false;
     }
 
@@ -273,15 +338,13 @@ function UpdateProfile() {
       const userData = await getUser(userId);
 
       if (userData) {
-        const today = new Date().toISOString().split('T')[0];
-        const birthDateValue = userData.birthDate === today ? '' : userData.birthDate ? formatDateForInput(userData.birthDate) : '';
         setPersonalInfo({
-          firstName: userData.firstName || '',
-          lastName: userData.lastName || '',
+          firstName: formatPersonName(userData.firstName || ''),
+          lastName: formatPersonName(userData.lastName || ''),
           email: userData.email || '',
           password: '',
-          phone: userData.phone || '',
-          birthDate: birthDateValue,
+          phone: cleanPhone(userData.phone),
+          birthDate: formatDateForInput(userData.birthDate),
           isActive: userData.isActive ?? true,
         });
       }
@@ -370,7 +433,6 @@ function UpdateProfile() {
 
       const isCompleted = !!userData?.firstName && !!userData?.email;
       setProfileCompleted(isCompleted);
-      localStorage.setItem(`profileCompleted_${userId}`, String(isCompleted));
     } catch (error) {
       console.error('Erreur chargement profil :', error);
       setError('Erreur lors du chargement du profil.');
@@ -383,6 +445,7 @@ function UpdateProfile() {
     }
   }, [userId]);
 
+  // Sauvegarde les informations du profil, des adresses, de l'école et des renseignements bancaires
   const handleSave = async () => {
     if (!userId) {
       setError('Utilisateur introuvable.');
@@ -452,7 +515,6 @@ function UpdateProfile() {
         loanInfo: bankingInfo.loanInfo,
         other: bankingInfo.other,
       });
-      localStorage.setItem(`profileCompleted_${userId}`, 'true');
       setIsEditing(false);
 
       try {
@@ -462,14 +524,16 @@ function UpdateProfile() {
       }
 
       setError('');
+      setSuccessMessage('Votre profil a été mis à jour avec succès!');
+      setTimeout(() => setSuccessMessage(''), 4000);
     } catch (error) {
       console.error('Erreur sauvegarde profil :', error);
       setError('Une erreur est survenue lors de la sauvegarde.');
     }
   };
-
+  // Réinitialise les erreurs et recharge les données initiales si l'utilisateur annule
   const handleCancel = async () => {
-    setErrors({ firstName: '', email: '', password: '' });
+    setErrors({ firstName: '', email: '', password: '', phone: '' });
     setSectionErrors(EMPTY_SECTION_ERRORS);
     setError('');
 
@@ -479,7 +543,7 @@ function UpdateProfile() {
 
     setIsEditing(false);
   };
-
+  // Supprime l'adresse de travail du backend et de l'interface
   const handleDeleteWorkAddress = async () => {
     if (!userId) return;
 
@@ -552,13 +616,20 @@ function UpdateProfile() {
               value={personalInfo.firstName}
               isEditing={isEditing}
               profileCompleted={profileCompleted}
-              onChange={(newValue) => setPersonalInfo({ ...personalInfo, firstName: newValue })}
+              onChange={(newValue) => setPersonalInfo({ ...personalInfo, firstName: formatPersonName(newValue) })}
             />
 
             {errors.firstName && <p className="text-red-500 text-sm md:text-base mt-1">{errors.firstName}</p>}
           </div>
           <div>
-            <Field prefix="personal" id="lastName" label="Nom" value={personalInfo.lastName} isEditing={isEditing} onChange={(newValue) => setPersonalInfo({ ...personalInfo, lastName: newValue })} />
+            <Field
+              prefix="personal"
+              id="lastName"
+              label="Nom"
+              value={personalInfo.lastName}
+              isEditing={isEditing}
+              onChange={(newValue) => setPersonalInfo({ ...personalInfo, lastName: formatPersonName(newValue) })}
+            />
           </div>
           <div>
             <Field
@@ -575,7 +646,15 @@ function UpdateProfile() {
             {errors.email && <p className="text-red-500 text-sm md:text-base mt-1">{errors.email}</p>}
           </div>
           <div>
-            <Field prefix="personal" id="phone" label="Téléphone" value={personalInfo.phone} isEditing={isEditing} onChange={(newValue) => setPersonalInfo({ ...personalInfo, phone: newValue })} />
+            <Field
+              prefix="personal"
+              id="phone"
+              label="Téléphone"
+              value={formatPersonPhone(personalInfo.phone)}
+              isEditing={isEditing}
+              onChange={(newValue) => setPersonalInfo({ ...personalInfo, phone: cleanPhone(newValue) })}
+            />
+            {errors.phone && <p className="text-red-500 text-sm md:text-base mt-1">{errors.phone}</p>}
           </div>
           <div>
             <Field
@@ -641,7 +720,6 @@ function UpdateProfile() {
         {isEditing && showWorkAddress && (
           <>
             {sectionErrors.workAddress && <p className="text-red-500 text-sm md:text-base mb-3">{sectionErrors.workAddress}</p>}
-            {/*  Adresse au travail → IDs: work-street, work-city … */}
             <AddressFields prefix="work" address={workAddress} onChange={setWorkAddress} isEditing={isEditing} profileCompleted={profileCompleted} />
             <div className="flex justify-end">
               <button
@@ -657,7 +735,7 @@ function UpdateProfile() {
         {!isEditing && workAddressExistsInBackend && (
           <>
             <p className="text-base md:text-lg font-semibold text-purple-700 mb-3">Adresse au travail</p>
-            <AddressFields prefix="work" address={workAddress} onChange={() => {}} isEditing={false} />
+            <AddressFields prefix="work" address={workAddress} onChange={() => {}} isEditing={false} profileCompleted={profileCompleted} />
           </>
         )}
       </section>
@@ -677,7 +755,7 @@ function UpdateProfile() {
                 value={schoolInfo.schoolName}
                 isEditing={isEditing}
                 profileCompleted={profileCompleted}
-                onChange={(newValue) => setSchoolInfo({ ...schoolInfo, schoolName: newValue })}
+                onChange={(newValue) => setSchoolInfo({ ...schoolInfo, schoolName: formatSchoolName(newValue) })}
               />
             </div>
 
@@ -690,7 +768,7 @@ function UpdateProfile() {
                 value={schoolInfo.fieldOfStudy}
                 isEditing={isEditing}
                 profileCompleted={profileCompleted}
-                onChange={(newValue) => setSchoolInfo({ ...schoolInfo, fieldOfStudy: newValue })}
+                onChange={(newValue) => setSchoolInfo({ ...schoolInfo, fieldOfStudy: formatFieldOfStudy(newValue) })}
               />
             </div>
 
@@ -735,7 +813,7 @@ function UpdateProfile() {
               value={bankingInfo.institutionName}
               isEditing={isEditing}
               profileCompleted={profileCompleted}
-              onChange={(newValue) => setBankingInfo({ ...bankingInfo, institutionName: newValue })}
+              onChange={(newValue) => setBankingInfo({ ...bankingInfo, institutionName: formatBankingName(newValue) })}
             />
 
             <div>
@@ -747,7 +825,7 @@ function UpdateProfile() {
                 value={bankingInfo.accountInfo}
                 isEditing={isEditing}
                 profileCompleted={profileCompleted}
-                onChange={(newValue) => setBankingInfo({ ...bankingInfo, accountInfo: newValue })}
+                onChange={(newValue) => setBankingInfo({ ...bankingInfo, accountInfo: formatAccountNumber(newValue) })}
               />
             </div>
 
@@ -758,12 +836,19 @@ function UpdateProfile() {
                 label="Info de prêt"
                 value={bankingInfo.loanInfo}
                 isEditing={isEditing}
-                onChange={(newValue) => setBankingInfo({ ...bankingInfo, loanInfo: newValue })}
+                onChange={(newValue) => setBankingInfo({ ...bankingInfo, loanInfo: formatLoanInfo(newValue) })}
               />
             </div>
 
             <div>
-              <Field prefix="banking" id="other" label="Autre" value={bankingInfo.other} isEditing={isEditing} onChange={(newValue) => setBankingInfo({ ...bankingInfo, other: newValue })} />
+              <Field
+                prefix="banking"
+                id="other"
+                label="Autre"
+                value={bankingInfo.other}
+                isEditing={isEditing}
+                onChange={(newValue) => setBankingInfo({ ...bankingInfo, other: formatOtherInfo(newValue) })}
+              />
             </div>
           </div>
         </section>
