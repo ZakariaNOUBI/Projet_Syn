@@ -1,15 +1,13 @@
-import { useState, useContext, useEffect } from 'react';
+import { useState, useContext } from 'react';
 import { signupUser } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { UserContext } from '../context/UserContext';
 
-function AlertModal({ message, isError, onClose }) {
+
+function AlertModal({ onClose }) {
   return (
-    <div className="fixed inset-0 bg-opacity-40 flex items-center justify-center z-50 p-2">
+    <div className="fixed inset-0  bg-opacity-40 flex items-center justify-center z-50 p-2">
       <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-sm text-center">
-        <p className={`mb-4 font-medium ${isError ? 'text-red-500' : 'text-green-500'}`}>
-          {message}
-        </p>
         <button
           className="mt-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition duration-300"
           onClick={onClose}
@@ -20,6 +18,7 @@ function AlertModal({ message, isError, onClose }) {
     </div>
   );
 }
+
 
 function EyeIcon({ open }) {
   return open ? (
@@ -33,8 +32,9 @@ function EyeIcon({ open }) {
   );
 }
 
-function ProfilePage() {
-  const { user, login } = useContext(UserContext);
+// Page d'inscription
+export default function ProfilePage() {
+  const { login } = useContext(UserContext);
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -43,16 +43,9 @@ function ProfilePage() {
     password: '',
     confirmPassword: '',
   });
-
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [message, setMessage] = useState('');
-  const [isError, setIsError] = useState(false);
   const [showModal, setShowModal] = useState(false);
-
-  useEffect(() => {
-    if (user) navigate('/updateProfil');
-  }, [user, navigate]);
 
   const passwordCriteria = {
     length: formData.password.length >= 8,
@@ -60,109 +53,40 @@ function ProfilePage() {
     lowercase: /[a-z]/.test(formData.password),
     number: /\d/.test(formData.password),
   };
-
   const strength = Object.values(passwordCriteria).filter(Boolean).length;
 
-  const getStrengthColor = () => {
-    if (strength <= 2) return '#f87171';
-    if (strength === 3) return '#facc15';
-    return '#34d399';
-  };
+  const handleChange = (e) =>
+    setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  const getStrengthText = () => {
-    if (strength <= 2) return 'Mot de passe faible';
-    if (strength === 3) return 'Mot de passe moyen';
-    return 'Mot de passe fort';
-  };
+ const handleSubmit = async (e) => {
+  e.preventDefault();
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage('');
-    setIsError(false);
-
-    const { firstName, email, password, confirmPassword } = formData;
-
-     if (!email || !password || !firstName || !confirmPassword) {
-      setMessage
-  ('Tous les champs sont obligatoires');
-      setIsError(true);
-      setShowModal(true);
-      return;
-    }
-    if (firstName.length < 3) {
-      setMessage('Le prénom doit contenir au moins 3 caractères.');
-      setIsError(true);
-      setShowModal(true);
-      return;
-    }
-
-    if (!email) {
-      setMessage('Veuillez entrer votre email.');
-      setIsError(true);
-      setShowModal(true);
-      return;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setMessage('Format email invalide.');
-      setIsError(true);
-      setShowModal(true);
-      return;
-    }
-
-    if (strength < 4) {
-      setMessage('Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule et un chiffre.');
-      setIsError(true);
-      setShowModal(true);
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setMessage('Les mots de passe ne correspondent pas.');
-      setIsError(true);
-      setShowModal(true);
-      return;
-    }
-
-    try {
-      const payload = { firstName, email, password, isActive: true, phone: '' };
-      const data = await signupUser(payload);
-
-      login({
-        id: data.id,
-        firstName: data.firstName,
-        email: data.email,
-      });
-
-    
-      setMessage(`Bienvenue ${firstName} ! Votre compte a été créé avec succès 🎉`);
-      setIsError(false);
-      setShowModal(true);
-      
-
-      setFormData({ firstName: '', email: '', password: '', confirmPassword: '' });
+  const { firstName, email, password, confirmPassword } = formData;
 
 
-      navigate('/updateProfil');
-       
+  if (!firstName || !email || !password || !confirmPassword) return;
+  if (firstName.length < 3) return;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+  if (strength < 4) return;
+  if (password !== confirmPassword) return;
 
-    } catch (err) {
-      console.error('Erreur signup:', err);
-      setMessage(err.response?.data?.message || err.message || 'Erreur lors de l\'inscription');
-      setIsError(true);
-      setShowModal(true);
-    }
-  };
 
-  if (user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-gray-600 text-center">Vous êtes déjà connecté. Redirection...</p>
-      </div>
-    );
-  }
+  try {
+  const payload = { firstName, email, password, isActive: true, phone: '' };
+  const data = await signupUser(payload);
+
+  login({ id: data.id, firstName: data.firstName, email: data.email });
+
+ 
+  navigate('/updateProfil', { state: { welcomeMessage: `Bienvenue ${data.firstName} !` } });
+} catch (err) {
+  console.error('Erreur signup:', err);
+}
+
+   
+};
+
+
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
@@ -211,19 +135,6 @@ function ProfilePage() {
                 <EyeIcon open={showPassword} />
               </button>
             </div>
-            {formData.password && (
-              <>
-                <div className="mt-2 h-2 w-full bg-gray-300 rounded">
-                  <div
-                    className="h-2 rounded"
-                    style={{ width: `${(strength / 4) * 100}%`, backgroundColor: getStrengthColor() }}
-                  ></div>
-                </div>
-                <p className="text-sm mt-1" style={{ color: getStrengthColor() }}>
-                  {getStrengthText()}
-                </p>
-              </>
-            )}
           </div>
 
           <div>
@@ -254,16 +165,8 @@ function ProfilePage() {
           </button>
         </form>
 
-        {showModal && (
-          <AlertModal
-            message={message}
-            isError={isError}
-            onClose={() => setShowModal(false)}
-          />
-        )}
+        {showModal && <AlertModal onClose={handleCloseModal} />}
       </div>
     </div>
   );
 }
-
-export default ProfilePage;
