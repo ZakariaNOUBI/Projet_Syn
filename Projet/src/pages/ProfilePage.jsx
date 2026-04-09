@@ -25,10 +25,10 @@ export default function ProfilePage() {
     password: '',
     confirmPassword: '',
   });
-  const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({}); // <-- pour les messages d'erreur
 
   const passwordCriteria = {
     length: formData.password.length >= 8,
@@ -40,57 +40,76 @@ export default function ProfilePage() {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    setErrors({ ...errors, [e.target.name]: '' }); // Supprime l'erreur quand l'utilisateur tape
+    setErrors({ ...errors, [e.target.name]: '' }); 
   };
 
-  const validate = () => {
-    const newErrors = {};
-    if (!formData.firstName) newErrors.firstName = 'Le prénom est obligatoire';
-    else if (formData.firstName.length < 3) newErrors.firstName = 'Le prénom doit contenir au moins 3 caractères';
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  const { firstName, email, password, confirmPassword } = formData;
 
-    if (!formData.email) newErrors.email = 'Le courriel est obligatoire';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Email invalide';
+  let newErrors = {};
 
-    if (!formData.password) newErrors.password = 'Le mot de passe est obligatoire';
-    else if (!passwordCriteria.length || !passwordCriteria.uppercase || !passwordCriteria.lowercase || !passwordCriteria.number)
-      newErrors.password = 'Mot de passe : 8 caractères, 1 majuscule, 1 minuscule, 1 chiffre';
+  // Vérifier si tous les champs sont vides
+  if (!firstName && !email && !password && !confirmPassword) {
+    setErrors({ general: 'Veuillez remplir tous les champs avant de continuer.' });
+    return;
+  }
 
-    if (!formData.confirmPassword) newErrors.confirmPassword = 'La confirmation est obligatoire';
-    else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Les mots de passe ne correspondent pas';
+  // Validation individuelle
+  if (!firstName) newErrors.firstName = 'Le prénom est requis';
+  else if (firstName.length < 3) newErrors.firstName = 'Le prénom doit contenir au moins 3 caractères';
 
+  if (!email) newErrors.email = 'Le courriel est requis';
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = 'Email invalide';
+
+  if (!password) newErrors.password = 'Le mot de passe est requis';
+  else if (!passwordCriteria.length)
+    newErrors.password = 'Le mot de passe doit contenir au moins 8 caractères';
+  else if (!passwordCriteria.uppercase || !passwordCriteria.lowercase || !passwordCriteria.number)
+    newErrors.password = 'Le mot de passe doit contenir 1 majuscule, 1 minuscule et 1 chiffre';
+
+  if (!confirmPassword) newErrors.confirmPassword = 'Veuillez confirmer le mot de passe';
+  else if (password !== confirmPassword) newErrors.confirmPassword = 'Les mots de passe ne correspondent pas';
+
+  // Si erreurs, afficher et arrêter
+  if (Object.keys(newErrors).length > 0) {
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+    return;
+  }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validate()) return;
+  setLoading(true);
+  try {
+    const payload = { firstName, email, password, isActive: true, phone: '' };
+    const data = await signupUser(payload);
 
-    setLoading(true);
-    try {
-      const payload = { ...formData, isActive: true, phone: '' };
-      const data = await signupUser(payload);
-
-      login({ id: data.id, firstName: data.firstName, email: data.email });
-
-      navigate('/updateProfil', {
-        state: { welcomeMessage: `Bienvenue ${data.firstName} !` },
-      });
-    } catch (err) {
-      console.error('Erreur signup:', err);
-    } finally {
-      setLoading(false);
+    if (data.error === 'EMAIL_EXISTS') {
+      setErrors({ email: 'Cet email est déjà utilisé' });
+      return;
     }
-  };
+
+    login({ id: data.id, firstName: data.firstName, email: data.email });
+    navigate('/updateProfil', { state: { welcomeMessage: `Bienvenue ${data.firstName} !` } });
+  } catch (err) {
+    console.error('Erreur signup:', err);
+    if (err?.response?.status === 409) {
+      setErrors({ general: "Ce courriel est déjà utilisé." });
+    } else {
+      setErrors({ general: 'Une erreur est survenue. Veuillez réessayer.' });
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
       <div className="bg-white rounded-xl shadow-xl p-6 sm:p-8 w-full max-w-md mx-2">
         <h1 className="text-2xl font-bold mb-2 text-center">Inscription</h1>
-        <p className="text-center mb-6 text-gray-600">Commencez à budgetter en quelques secondes! 💰</p>
+        <p className="text-center mb-6 text-gray-600">
+          Commencez à budgetter en quelques secondes! 💰
+        </p>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
-          {/* Prénom */}
           <div>
             <label className="block mb-1 font-medium">Votre prénom :</label>
             <input
@@ -98,12 +117,11 @@ export default function ProfilePage() {
               name="firstName"
               value={formData.firstName}
               onChange={handleChange}
-              className={`w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none ${errors.firstName ? 'border-red-500' : ''}`}
+              className="w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
             />
             {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>}
           </div>
 
-          {/* Email */}
           <div>
             <label className="block mb-1 font-medium">Votre courriel :</label>
             <input
@@ -111,12 +129,11 @@ export default function ProfilePage() {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className={`w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none ${errors.email ? 'border-red-500' : ''}`}
+              className="w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
             />
             {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
           </div>
 
-          {/* Mot de passe */}
           <div>
             <label className="block mb-1 font-medium">Mot de passe :</label>
             <div className="relative">
@@ -125,28 +142,42 @@ export default function ProfilePage() {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className={`w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none pr-10 ${errors.password ? 'border-red-500' : ''}`}
+                className="w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none pr-10"
               />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2">
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2"
+              >
                 <EyeIcon open={showPassword} />
               </button>
             </div>
+            {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+
+            {/* Barre dynamique */}
             {formData.password.length > 0 && (
               <div className="mt-2">
                 <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                   <div
                     className={`h-full transition-all duration-300 ${
-                      strength <= 2 ? 'bg-red-500' : strength === 3 ? 'bg-yellow-500' : 'bg-green-500'
+                      strength <= 2
+                        ? 'bg-red-500'
+                        : strength === 3
+                        ? 'bg-yellow-500'
+                        : 'bg-green-500'
                     }`}
                     style={{ width: `${(strength / 4) * 100}%` }}
                   ></div>
                 </div>
+                <p className="text-sm mt-1">
+                  {strength <= 2 && <span className="text-red-500">Mot de passe faible</span>}
+                  {strength === 3 && <span className="text-yellow-500">Mot de passe moyen</span>}
+                  {strength === 4 && <span className="text-green-600">Mot de passe fort</span>}
+                </p>
               </div>
             )}
-            {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
           </div>
 
-       
           <div>
             <label className="block mb-1 font-medium">Confirmer mot de passe :</label>
             <div className="relative">
@@ -155,14 +186,20 @@ export default function ProfilePage() {
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className={`w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none pr-10 ${errors.confirmPassword ? 'border-red-500' : ''}`}
+                className="w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none pr-10"
               />
-              <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2">
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2"
+              >
                 <EyeIcon open={showConfirmPassword} />
               </button>
             </div>
             {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
           </div>
+
+          {errors.general && <p className="text-red-500 text-center">{errors.general}</p>}
 
           <button
             type="submit"
