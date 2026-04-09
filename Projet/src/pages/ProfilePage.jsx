@@ -3,23 +3,6 @@ import { signupUser } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { UserContext } from '../context/UserContext';
 
-
-function AlertModal({ onClose }) {
-  return (
-    <div className="fixed inset-0  bg-opacity-40 flex items-center justify-center z-50 p-2">
-      <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-sm text-center">
-        <button
-          className="mt-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition duration-300"
-          onClick={onClose}
-        >
-          Fermer
-        </button>
-      </div>
-    </div>
-  );
-}
-
-
 function EyeIcon({ open }) {
   return open ? (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
@@ -32,7 +15,6 @@ function EyeIcon({ open }) {
   );
 }
 
-// Page d'inscription
 export default function ProfilePage() {
   const { login } = useContext(UserContext);
   const navigate = useNavigate();
@@ -45,7 +27,7 @@ export default function ProfilePage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const passwordCriteria = {
     length: formData.password.length >= 8,
@@ -55,44 +37,42 @@ export default function ProfilePage() {
   };
   const strength = Object.values(passwordCriteria).filter(Boolean).length;
 
-  const handleChange = (e) =>
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const { firstName, email, password, confirmPassword } = formData;
 
-  const { firstName, email, password, confirmPassword } = formData;
+    if (!firstName || !email || !password || !confirmPassword) return;
+    if (firstName.length < 3) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+    if (strength < 4) return;
+    if (password !== confirmPassword) return;
 
+    setLoading(true);
+    try {
+      const payload = { firstName, email, password, isActive: true, phone: '' };
+      const data = await signupUser(payload);
 
-  if (!firstName || !email || !password || !confirmPassword) return;
-  if (firstName.length < 3) return;
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
-  if (strength < 4) return;
-  if (password !== confirmPassword) return;
+      login({ id: data.id, firstName: data.firstName, email: data.email });
 
-
-  try {
-  const payload = { firstName, email, password, isActive: true, phone: '' };
-  const data = await signupUser(payload);
-
-  login({ id: data.id, firstName: data.firstName, email: data.email });
-
- 
-  navigate('/updateProfil', { state: { welcomeMessage: `Bienvenue ${data.firstName} !` } });
-} catch (err) {
-  console.error('Erreur signup:', err);
-}
-
-   
-};
-
-
+      navigate('/updateProfil', {
+        state: { welcomeMessage: `Bienvenue ${data.firstName} !` },
+      });
+    } catch (err) {
+      console.error('Erreur signup:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
       <div className="bg-white rounded-xl shadow-xl p-6 sm:p-8 w-full max-w-md mx-2">
         <h1 className="text-2xl font-bold mb-2 text-center">Inscription</h1>
-        <p className="text-center mb-6 text-gray-600">Commencez à budgetter en quelques secondes! 💰</p>
+        <p className="text-center mb-6 text-gray-600">
+          Commencez à budgetter en quelques secondes! 💰
+        </p>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
           <div>
@@ -102,7 +82,7 @@ export default function ProfilePage() {
               name="firstName"
               value={formData.firstName}
               onChange={handleChange}
-              className="w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+              className="w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
             />
           </div>
 
@@ -113,7 +93,7 @@ export default function ProfilePage() {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+              className="w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
             />
           </div>
 
@@ -125,7 +105,7 @@ export default function ProfilePage() {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none pr-10"
+                className="w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none pr-10"
               />
               <button
                 type="button"
@@ -135,6 +115,29 @@ export default function ProfilePage() {
                 <EyeIcon open={showPassword} />
               </button>
             </div>
+
+            {/* Barre dynamique mot de passe */}
+            {formData.password.length > 0 && (
+              <div className="mt-2">
+                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-300 ${
+                      strength <= 2
+                        ? 'bg-red-500'
+                        : strength === 3
+                        ? 'bg-yellow-500'
+                        : 'bg-green-500'
+                    }`}
+                    style={{ width: `${(strength / 4) * 100}%` }}
+                  ></div>
+                </div>
+                <p className="text-sm mt-1">
+                  {strength <= 2 && <span className="text-red-500">Mot de passe faible </span>}
+                  {strength === 3 && <span className="text-yellow-500">Mot de passe moyen </span>}
+                  {strength === 4 && <span className="text-green-600">Mot de passe fort </span>}
+                </p>
+              </div>
+            )}
           </div>
 
           <div>
@@ -145,7 +148,7 @@ export default function ProfilePage() {
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className="w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none pr-10"
+                className="w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none pr-10"
               />
               <button
                 type="button"
@@ -159,13 +162,12 @@ export default function ProfilePage() {
 
           <button
             type="submit"
+            disabled={loading}
             className="w-full py-2 mt-4 rounded-lg bg-gradient-to-r from-purple-600 via-purple-700 to-purple-800 text-white font-semibold shadow-lg hover:brightness-110 transition duration-300"
           >
-            S’inscrire
+            {loading ? 'Inscription...' : 'S’inscrire'}
           </button>
         </form>
-
-        {showModal && <AlertModal onClose={handleCloseModal} />}
       </div>
     </div>
   );
