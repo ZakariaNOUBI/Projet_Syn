@@ -25,6 +25,7 @@ export default function ProfilePage() {
     password: '',
     confirmPassword: '',
   });
+  const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -37,21 +38,37 @@ export default function ProfilePage() {
   };
   const strength = Object.values(passwordCriteria).filter(Boolean).length;
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setErrors({ ...errors, [e.target.name]: '' }); // Supprime l'erreur quand l'utilisateur tape
+  };
+
+  const validate = () => {
+    const newErrors = {};
+    if (!formData.firstName) newErrors.firstName = 'Le prénom est obligatoire';
+    else if (formData.firstName.length < 3) newErrors.firstName = 'Le prénom doit contenir au moins 3 caractères';
+
+    if (!formData.email) newErrors.email = 'Le courriel est obligatoire';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Email invalide';
+
+    if (!formData.password) newErrors.password = 'Le mot de passe est obligatoire';
+    else if (!passwordCriteria.length || !passwordCriteria.uppercase || !passwordCriteria.lowercase || !passwordCriteria.number)
+      newErrors.password = 'Mot de passe : 8 caractères, 1 majuscule, 1 minuscule, 1 chiffre';
+
+    if (!formData.confirmPassword) newErrors.confirmPassword = 'La confirmation est obligatoire';
+    else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Les mots de passe ne correspondent pas';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { firstName, email, password, confirmPassword } = formData;
-
-    if (!firstName || !email || !password || !confirmPassword) return;
-    if (firstName.length < 3) return;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
-    if (strength < 4) return;
-    if (password !== confirmPassword) return;
+    if (!validate()) return;
 
     setLoading(true);
     try {
-      const payload = { firstName, email, password, isActive: true, phone: '' };
+      const payload = { ...formData, isActive: true, phone: '' };
       const data = await signupUser(payload);
 
       login({ id: data.id, firstName: data.firstName, email: data.email });
@@ -70,11 +87,10 @@ export default function ProfilePage() {
     <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
       <div className="bg-white rounded-xl shadow-xl p-6 sm:p-8 w-full max-w-md mx-2">
         <h1 className="text-2xl font-bold mb-2 text-center">Inscription</h1>
-        <p className="text-center mb-6 text-gray-600">
-          Commencez à budgetter en quelques secondes! 💰
-        </p>
+        <p className="text-center mb-6 text-gray-600">Commencez à budgetter en quelques secondes! 💰</p>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
+          {/* Prénom */}
           <div>
             <label className="block mb-1 font-medium">Votre prénom :</label>
             <input
@@ -82,10 +98,12 @@ export default function ProfilePage() {
               name="firstName"
               value={formData.firstName}
               onChange={handleChange}
-              className="w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              className={`w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none ${errors.firstName ? 'border-red-500' : ''}`}
             />
+            {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>}
           </div>
 
+          {/* Email */}
           <div>
             <label className="block mb-1 font-medium">Votre courriel :</label>
             <input
@@ -93,10 +111,12 @@ export default function ProfilePage() {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              className={`w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none ${errors.email ? 'border-red-500' : ''}`}
             />
+            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
           </div>
 
+          {/* Mot de passe */}
           <div>
             <label className="block mb-1 font-medium">Mot de passe :</label>
             <div className="relative">
@@ -105,41 +125,28 @@ export default function ProfilePage() {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none pr-10"
+                className={`w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none pr-10 ${errors.password ? 'border-red-500' : ''}`}
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2"
-              >
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2">
                 <EyeIcon open={showPassword} />
               </button>
             </div>
-
-            {/* Barre dynamique mot de passe */}
             {formData.password.length > 0 && (
               <div className="mt-2">
                 <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                   <div
                     className={`h-full transition-all duration-300 ${
-                      strength <= 2
-                        ? 'bg-red-500'
-                        : strength === 3
-                        ? 'bg-yellow-500'
-                        : 'bg-green-500'
+                      strength <= 2 ? 'bg-red-500' : strength === 3 ? 'bg-yellow-500' : 'bg-green-500'
                     }`}
                     style={{ width: `${(strength / 4) * 100}%` }}
                   ></div>
                 </div>
-                <p className="text-sm mt-1">
-                  {strength <= 2 && <span className="text-red-500">Mot de passe faible </span>}
-                  {strength === 3 && <span className="text-yellow-500">Mot de passe moyen </span>}
-                  {strength === 4 && <span className="text-green-600">Mot de passe fort </span>}
-                </p>
               </div>
             )}
+            {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
           </div>
 
+       
           <div>
             <label className="block mb-1 font-medium">Confirmer mot de passe :</label>
             <div className="relative">
@@ -148,16 +155,13 @@ export default function ProfilePage() {
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className="w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none pr-10"
+                className={`w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none pr-10 ${errors.confirmPassword ? 'border-red-500' : ''}`}
               />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2"
-              >
+              <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2">
                 <EyeIcon open={showConfirmPassword} />
               </button>
             </div>
+            {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
           </div>
 
           <button
