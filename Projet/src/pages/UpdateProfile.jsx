@@ -307,7 +307,21 @@ function UpdateProfile() {
   const isBankingComplete = (banking) => {
     return banking.institutionName.trim() !== '' && banking.accountInfo.trim() !== '';
   };
+const isAtLeast18 = (birthDate) => {
+  if (!birthDate) return false;
 
+  const today = new Date();
+  const birth = new Date(birthDate);
+
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+
+  return age >= 18;
+};
   // Validation des champs obligatoires avant sauvegarde
   const validateForm = () => {
     const newErrors = {
@@ -315,6 +329,8 @@ function UpdateProfile() {
       email: '',
       password: '',
       phone: '',
+      birthDate: '',
+
     };
 
     let isValid = true;
@@ -348,6 +364,13 @@ function UpdateProfile() {
         isValid = false;
       }
     }
+if (!personalInfo.birthDate) {
+  newErrors.birthDate = 'La date de naissance est requise.';
+  isValid = false;
+} else if (!isAtLeast18(personalInfo.birthDate)) {
+  newErrors.birthDate = 'Vous devez avoir au moins 18 ans.';
+  isValid = false;
+}
 
     setErrors(newErrors);
     return isValid;
@@ -686,17 +709,24 @@ function UpdateProfile() {
             />
             {errors.phone && <p className="text-red-500 text-sm md:text-base mt-1">{errors.phone}</p>}
           </div>
-          <div>
-            <Field
-              prefix="personal"
-              id="birthDate"
-              label="Date de naissance"
-              type="date"
-              value={personalInfo.birthDate}
-              isEditing={isEditing}
-              onChange={(newValue) => setPersonalInfo({ ...personalInfo, birthDate: newValue })}
-            />
-          </div>
+       <div>
+  <Field
+    prefix="personal"
+    id="birthDate"
+    label="Date de naissance"
+    type="date"
+    value={personalInfo.birthDate}
+    isEditing={isEditing}
+    onChange={(newValue) =>
+      setPersonalInfo({ ...personalInfo, birthDate: newValue })
+    }
+  />
+  {errors.birthDate && (
+    <p className="text-red-500 text-sm md:text-base mt-1">
+      {errors.birthDate}
+    </p>
+  )}
+</div>
           <div>
             <Field
               prefix="personal"
